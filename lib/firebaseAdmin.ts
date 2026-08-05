@@ -5,10 +5,10 @@ import { getFirestore } from "firebase-admin/firestore";
 function getAdminApp(): App {
   if (getApps().length) return getApps()[0];
 
-  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
+  const projectId = "pixora-ad6a8";
+  const clientEmail = "firebase-adminsdk-fbsvc@pixora-ad6a8.iam.gserviceaccount.com";
   // Private key is stored with literal "\n" in env vars - convert back to real newlines.
-  const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  const privateKey = "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDI9hLEv6mHQZHr\n9PNTy4Oi3Bpliu7GBHrulbS2KP3zL6Iopjt0S/JZ/kkSh0nKRbFmcARYqCUfuC+o\nrnjGoOfAKPu+OwreVUPuMfZNZd1ReXazm8LTJy+Q1g/Exv2eXOX+eixEcpNr7n0a\nVAdAm6mrB3/KfvmSd/u4kmVg0NssRmC7RNrsx2kzpY08D5vilndurbw+gEYcXDsA\nUzX05pNiQQ0vXLFrDwoWk3pjhIWjfUXKPxbbH/VRJp4yXekbgMXhIaBQPAUcUhOt\nlgdM9x2ExxBR3MVUMAA6slWyBFJcvFhGrzAN3lFUNOq/ZXBMDjBQV+k0tvlsVm+I\n3t5JCInbAgMBAAECggEABN7MqNJ+a5m+62p96YfMXNmI2Q+fF486PKcROP/Freuk\nnEIPU96e2pVBA8EPBd+EhWph6+CZsX3AA9I8xGIqvY9MAaUeb24J7sX0Q6TB0onY\nDjOUH7KEEbZ5rZfUSzgsjz4cR/K9Q8l9c0VAEHOL6UwVaACFyPM9sb1/t5jHQ0QI\n89fhqzGuDP7nW9z/gVCzLo9DIQlWTu4HppXqkjz+b2e4Jq6v+jPpoKmxPQmuLy1A\n9g0BPKs+4trnkJ2kIsEvsYOGXuvXKnbaKHm9Zo25m4uvZowoMg9Y2uRha8u0fbuW\nacs340ReHP2TlHYiVlqrKN+R5W+oSMRRs9FaCYC8gQKBgQDwtYfKsFAp8dWFHvhx\n9YF9iQ0gfip8dYi1WsnpOKT/4PtbR1leyY49jWFAM4DYAXRAIUkZW3hQlcQzCVq8\nuAeAeQWhZP6giHopaC9uQ6vN9al5k3OBqpB272Y+EeGiO/FmV+xJLOUE3VUrEWTw\n0bRVDz8pYoEWICErZfVQRQu8GwKBgQDVuic8ZYd/CDQAHuQpizQgezS5s5L/yxWg\nMHxXmrJZmKWSwy0mx4VvI611wOsHiX5sdlPiBJ3E/U/htEkSBizFgdWbhc4ZS637\n62dDMbrb1g254ZwudM0650y5dX9blKYifYy2LmwEFaXLIHTy/kBkhSORBXO9jSHl\ne69V5rfFQQKBgQDlGlKht4jFM3kf2CduB9b0zgIhgBQeG5w/yKbPBOv+43s6GMHW\nNw7cRPlgKuUiMtgbxdKWgPoV8UYpsWicoKf7PrT+NWspDlz/ljs2vtACGyTwI0jY\nDKitmxR8VXalfFo6J8sspr9gDu3mLQsfLult4DIkyK3GilQnw0Zm3SDbKwKBgQCf\nK8wcxuBqUwmnLVpvNiTUK+3Qf1Ry/CRW8MUp2SQKZgypiIIP53gQlVmR4OMo8dUd\noeJG6Xk2RBFB3qqsqbyeO1uCP9yGKj6g52g4OskXAAuo68UNNB/ERo51cHQxGDvC\nZA5vf5MiV5zp8nomngQG2MDsOEtCV+Furvad2v3yAQKBgBsDsdrZYEMrE57sAGL0\n9yCHYUFtyZEqlHR0w0gIwrDQ1WDFSu2ZEB7jmjj0vV8eggHm2fYeDHB1lkQsKchZ\nxGa4HZAFz+rBg2nlMN91dbQWV2EUwE5WkcLl1jnfSKJCRG40L7/YVJEp3+85dlgW\nJkC4XZ/0cMIiQKJbmqVVeNqv\n-----END PRIVATE KEY-----\n";
 
   return initializeApp({
     credential: cert({ projectId, clientEmail, privateKey }),
