@@ -77,8 +77,8 @@ export default function Hero() {
           <Image
             src="/images/hero.png"
             alt={config.siteName}
-            width={900}
-            height={900}
+            width={1800}
+            height={1800}
             priority
           />
 
