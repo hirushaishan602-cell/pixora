@@ -2899,3 +2899,170 @@ bottom:16px;
 }
 
 }
+
+/* =========================================================
+   PORTFOLIO PAGE — dedicated /portfolio gallery
+========================================================= */
+
+.portfolio-page{
+padding:160px 0 100px;
+min-height:70vh;
+}
+
+.portfolio-page-intro{
+text-align:center;
+max-width:640px;
+margin:0 auto 50px;
+}
+
+.portfolio-page-intro span{
+color:var(--primary);
+letter-spacing:3px;
+font-size:13px;
+}
+
+.portfolio-page-intro h1{
+margin:16px 0 18px;
+font-size:48px;
+line-height:1.15;
+}
+
+.portfolio-page-intro h1 em{
+color:var(--primary);
+font-style:normal;
+}
+
+.portfolio-filter-bar{
+display:flex;
+flex-wrap:wrap;
+justify-content:center;
+gap:12px;
+margin-bottom:50px;
+}
+
+.portfolio-filter-bar button{
+padding:10px 22px;
+border-radius:100px;
+border:1px solid var(--border);
+background:transparent;
+color:var(--muted);
+font-size:14px;
+font-weight:500;
+transition:.25s;
+}
+
+.portfolio-filter-bar button:hover{
+border-color:var(--primary);
+color:var(--primary-light);
+}
+
+.portfolio-filter-bar button.active{
+background:var(--primary);
+border-color:var(--primary);
+color:#fff;
+}
+
+.portfolio-page-state{
+text-align:center;
+padding:80px 20px;
+color:var(--muted);
+}
+
+/* masonry: CSS multi-column keeps each image at its natural
+   aspect ratio, so different sizes sit together like a real
+   gallery wall instead of a rigid same-height grid */
+
+.portfolio-masonry{
+column-count:4;
+column-gap:22px;
+}
+
+.portfolio-masonry-item{
+position:relative;
+break-inside:avoid;
+margin-bottom:22px;
+border-radius:16px;
+overflow:hidden;
+border:1px solid var(--border);
+background:var(--surface);
+}
+
+.portfolio-masonry-item img{
+width:100%;
+height:auto;
+display:block;
+transition:.4s ease;
+}
+
+.portfolio-masonry-item:hover img{
+transform:scale(1.04);
+}
+
+.portfolio-masonry-caption{
+position:absolute;
+left:0;
+right:0;
+bottom:0;
+padding:24px 18px 16px;
+background:linear-gradient(to top,rgba(0,0,0,.85),rgba(0,0,0,0));
+opacity:0;
+transform:translateY(8px);
+transition:.3s ease;
+}
+
+.portfolio-masonry-item:hover .portfolio-masonry-caption{
+opacity:1;
+transform:translateY(0);
+}
+
+.portfolio-masonry-caption span{
+color:var(--primary-light);
+font-size:12px;
+letter-spacing:1.5px;
+text-transform:uppercase;
+}
+
+.portfolio-masonry-caption h3{
+font-size:17px;
+margin-top:6px;
+}
+
+@media(max-width:1200px){
+.portfolio-masonry{
+column-count:3;
+}
+}
+
+@media(max-width:900px){
+.portfolio-masonry{
+column-count:2;
+}
+.portfolio-page-intro h1{
+font-size:38px;
+}
+}
+
+@media(max-width:600px){
+.portfolio-page{
+padding:130px 0 70px;
+}
+.portfolio-masonry{
+column-count:1;
+column-gap:0;
+}
+.portfolio-page-intro h1{
+font-size:30px;
+}
+/* on touch devices hover isn't reliable, so keep the caption
+   visible by default instead of hidden-until-hover */
+.portfolio-masonry-caption{
+opacity:1;
+transform:translateY(0);
+position:static;
+background:none;
+padding:14px 4px 0;
+}
+.portfolio-masonry-item:hover img{
+transform:none;
+}
+}

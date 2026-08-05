@@ -32,8 +32,10 @@ export function SiteDataProvider({ children }: { children: ReactNode }) {
       const [cfg, projs] = await Promise.all([getSiteConfig(), getProjects()]);
       setConfig(cfg);
       setProjects(projs);
-    } catch {
-      // keep defaults if Firebase isn't configured yet
+    } catch (err) {
+      // keep defaults if Firebase isn't configured yet — but log so it's
+      // easy to spot in devtools if projects/config aren't showing up
+      console.error("Pixora: failed to load site data from Firebase", err);
     } finally {
       setLoading(false);
     }

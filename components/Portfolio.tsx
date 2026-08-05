@@ -27,7 +27,7 @@ export default function Portfolio() {
             <em>Define Brands</em>
           </h2>
           <p>Every project is an opportunity to create something unique and impactful.</p>
-          <a href="#portfolio" className="outline-btn">
+          <a href="/portfolio" className="outline-btn">
             View All Projects →
           </a>
         </div>

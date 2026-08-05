@@ -37,7 +37,7 @@ export default function Hero() {
 
           <div className="hero-buttons">
 
-            <a href="#portfolio" className="primary-btn">
+            <a href="/portfolio" className="primary-btn">
               View Portfolio →
             </a>
 
