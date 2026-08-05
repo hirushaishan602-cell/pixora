@@ -2375,6 +2375,23 @@ color:var(--muted);
 font-size:14px;
 }
 
+.request-delete-btn{
+margin-top:14px;
+padding:10px 18px;
+border-radius:10px;
+border:1px solid rgba(255,80,80,.35);
+background:rgba(255,80,80,.08);
+color:#ff7a7a;
+font-size:13px;
+font-weight:500;
+transition:.2s;
+}
+
+.request-delete-btn:hover{
+background:rgba(255,80,80,.16);
+border-color:rgba(255,80,80,.6);
+}
+
 .admin-approved-tag{
 color:var(--muted);
 font-size:13px;

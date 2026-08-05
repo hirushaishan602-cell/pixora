@@ -27,7 +27,7 @@ export default function SignupPage() {
     setLoading(true);
     try {
       await signup(email, password, name);
-      router.push("/");
+      router.replace("/");
     } catch (err) {
       const message =
         err instanceof Error && err.message.includes("email-already-in-use")

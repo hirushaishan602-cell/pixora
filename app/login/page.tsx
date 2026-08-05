@@ -41,11 +41,11 @@ export default function LoginPage() {
 
         const role = await getUserRole(currentUser.uid);
         if (role === "admin" || role === "mainAdmin") {
-          router.push("/admin");
+          router.replace("/admin");
           return;
         }
       }
-      router.push("/");
+      router.replace("/");
     } catch {
       setError("Invalid email or password.");
     } finally {

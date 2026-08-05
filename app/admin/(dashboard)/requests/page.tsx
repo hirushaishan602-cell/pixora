@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
-import { listAllRequests, approveRequest, completeRequest } from "@/lib/requests";
+import { listAllRequests, approveRequest, completeRequest, deleteRequest } from "@/lib/requests";
 import { ProjectRequest } from "@/lib/types";
 
 const statusLabel: Record<ProjectRequest["status"], string> = {
@@ -99,6 +99,12 @@ export default function AdminRequestsPage() {
   const handleApprove = async (req: ProjectRequest) => {
     if (!user?.email) return;
     await approveRequest(req.id, { email: user.email, uid: user.uid });
+    await load();
+  };
+
+  const handleDelete = async (req: ProjectRequest) => {
+    if (!confirm(`Delete the completed request from ${req.clientEmail}?`)) return;
+    await deleteRequest(req.id);
     await load();
   };
 
@@ -213,6 +219,15 @@ export default function AdminRequestsPage() {
                     ) : (
                       <p className="admin-subtitle">Waiting for client&apos;s rating.</p>
                     )}
+                    <div className="admin-form-actions">
+                      <button
+                        type="button"
+                        className="request-delete-btn"
+                        onClick={() => handleDelete(req)}
+                      >
+                        Delete Request
+                      </button>
+                    </div>
                   </>
                 )}
               </div>

@@ -2,6 +2,7 @@ import {
   collection,
   addDoc,
   updateDoc,
+  deleteDoc,
   doc,
   getDocs,
   query,
@@ -87,4 +88,8 @@ export async function rateRequest(
     comment: data.comment,
     ratedAt: serverTimestamp(),
   });
+}
+
+export async function deleteRequest(id: string): Promise<void> {
+  await deleteDoc(doc(db, "pixora_requests", id));
 }

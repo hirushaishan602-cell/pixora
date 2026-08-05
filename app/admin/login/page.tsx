@@ -19,7 +19,7 @@ export default function AdminLoginPage() {
     setLoading(true);
     try {
       await login(email, password);
-      router.push("/admin");
+      router.replace("/admin");
     } catch {
       setError("Invalid email or password.");
     } finally {

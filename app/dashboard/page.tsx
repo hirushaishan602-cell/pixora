@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
-import { listRequestsForClient } from "@/lib/requests";
+import { listRequestsForClient, deleteRequest } from "@/lib/requests";
 import { ProjectRequest } from "@/lib/types";
 import ProjectRatingBox from "@/components/ProjectRatingBox";
 import BackButton from "@/components/BackButton";
@@ -27,6 +27,12 @@ export default function ClientDashboardPage() {
     const data = await listRequestsForClient(uid);
     setRequests(data);
     setLoadingRequests(false);
+  };
+
+  const handleDelete = async (req: ProjectRequest) => {
+    if (!confirm("Delete this completed project from your dashboard?")) return;
+    await deleteRequest(req.id);
+    if (user) await load(user.uid);
   };
 
   useEffect(() => {
@@ -131,6 +137,14 @@ export default function ClientDashboardPage() {
                   ) : (
                     <ProjectRatingBox request={req} onRated={() => load(user.uid)} />
                   )}
+
+                  <button
+                    type="button"
+                    className="request-delete-btn"
+                    onClick={() => handleDelete(req)}
+                  >
+                    Delete Project
+                  </button>
                 </div>
               )}
             </div>
