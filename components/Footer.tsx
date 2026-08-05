@@ -32,8 +32,8 @@ export default function Footer() {
           <Image
             src="/images/logo.png"
             alt={config.siteName}
-            width={170}
-            height={48}
+            width={680}
+            height={192}
             className="footer-logo"
           />
 
