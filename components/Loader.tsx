@@ -23,7 +23,7 @@ return(
 
 <div className="loader">
 
-<Image src="/images/logo.png" alt="PIXORA" width={170} height={48} priority className="loader-logo" />
+<Image src="/images/logo.png" alt="PIXORA" width={510} height={144} priority className="loader-logo" />
 
 </div>
 
