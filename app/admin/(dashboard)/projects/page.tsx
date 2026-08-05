@@ -85,7 +85,7 @@ export default function AdminProjectsPage() {
 
   const handleDelete = async (project: Project) => {
     if (!confirm(`Delete "${project.title}"?`)) return;
-    await deleteProject(project.id, project.imageUrl);
+    await deleteProject(project.id);
     await load();
   };
 
