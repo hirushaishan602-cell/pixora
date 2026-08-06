@@ -3,6 +3,24 @@
 import { motion } from "framer-motion";
 import { FaStar } from "react-icons/fa";
 import { useSiteData } from "@/context/SiteDataContext";
+import { ProjectRequest } from "@/lib/types";
+
+// Never show the client's email publicly. Prefer their saved name; if
+// they signed up without one, turn the email's local part into a
+// presentable name instead (e.g. "kasun.perera92" -> "Kasun Perera").
+function displayName(item: ProjectRequest): string {
+  if (item.clientName && item.clientName.trim()) return item.clientName.trim();
+
+  const local = item.clientEmail?.split("@")[0] ?? "";
+  const cleaned = local.replace(/[\d._+-]+/g, " ").trim();
+  if (!cleaned) return "Happy Client";
+
+  return cleaned
+    .split(" ")
+    .filter(Boolean)
+    .map((w) => w[0].toUpperCase() + w.slice(1))
+    .join(" ");
+}
 
 export default function Testimonials() {
   const { testimonials } = useSiteData();
@@ -38,7 +56,7 @@ export default function Testimonials() {
 
               {item.comment && <p>"{item.comment}"</p>}
 
-              <h3>{item.clientName || item.clientEmail}</h3>
+              <h3>{displayName(item)}</h3>
 
               <span>{item.category}</span>
 
