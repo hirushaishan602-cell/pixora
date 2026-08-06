@@ -98,6 +98,7 @@ export type ProjectRequest = {
   id: string;
   clientId: string;
   clientEmail: string;
+  clientName?: string;
   category: string;
   description: string;
   imageUrls: string[];
@@ -116,4 +117,8 @@ export type ProjectRequest = {
   rating?: number;
   comment?: string;
   ratedAt?: number;
+
+  // set by an admin once they decide a client's rating/comment is good
+  // enough to show publicly in the homepage "What Our Clients Say" section
+  featured?: boolean;
 };

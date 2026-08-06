@@ -1,29 +1,16 @@
 "use client";
 
 import { motion } from "framer-motion";
-
-const testimonials = [
-  {
-    name: "Kasun Perera",
-    role: "Business Owner",
-    review:
-      "PIXORA transformed our brand identity with outstanding creativity and professionalism.",
-  },
-  {
-    name: "Nadeesha Silva",
-    role: "Restaurant Owner",
-    review:
-      "Amazing logo design and social media creatives. Highly recommended!",
-  },
-  {
-    name: "Tharindu Fernando",
-    role: "Startup Founder",
-    review:
-      "Professional service, fast delivery and premium quality designs.",
-  },
-];
+import { FaStar } from "react-icons/fa";
+import { useSiteData } from "@/context/SiteDataContext";
 
 export default function Testimonials() {
+  const { testimonials } = useSiteData();
+
+  // Nothing to show until an admin marks at least one rated project as
+  // featured — stay blank instead of showing fake/placeholder reviews.
+  if (testimonials.length === 0) return null;
+
   return (
     <section className="testimonials">
       <div className="container">
@@ -34,17 +21,26 @@ export default function Testimonials() {
         </div>
 
         <div className="testimonial-grid">
-          {testimonials.map((item, index) => (
+          {testimonials.map((item) => (
             <motion.div
-              key={index}
+              key={item.id}
               className="testimonial-card"
               whileHover={{ y: -10 }}
             >
-              <p>"{item.review}"</p>
+              <div className="testimonial-stars">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <FaStar
+                    key={n}
+                    className={n <= (item.rating ?? 0) ? "star-filled" : "star-empty"}
+                  />
+                ))}
+              </div>
 
-              <h3>{item.name}</h3>
+              {item.comment && <p>"{item.comment}"</p>}
 
-              <span>{item.role}</span>
+              <h3>{item.clientName || item.clientEmail}</h3>
+
+              <span>{item.category}</span>
 
             </motion.div>
           ))}

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
-import { listAllRequests, approveRequest, completeRequest, deleteRequest } from "@/lib/requests";
+import { listAllRequests, approveRequest, completeRequest, deleteRequest, setRequestFeatured } from "@/lib/requests";
 import { ProjectRequest } from "@/lib/types";
 
 const statusLabel: Record<ProjectRequest["status"], string> = {
@@ -105,6 +105,11 @@ export default function AdminRequestsPage() {
   const handleDelete = async (req: ProjectRequest) => {
     if (!confirm(`Delete the completed request from ${req.clientEmail}?`)) return;
     await deleteRequest(req.id);
+    await load();
+  };
+
+  const handleToggleFeatured = async (req: ProjectRequest) => {
+    await setRequestFeatured(req.id, !req.featured);
     await load();
   };
 
@@ -220,6 +225,19 @@ export default function AdminRequestsPage() {
                       <p className="admin-subtitle">Waiting for client&apos;s rating.</p>
                     )}
                     <div className="admin-form-actions">
+                      {req.rating ? (
+                        <button
+                          type="button"
+                          className={
+                            req.featured ? "outline-btn featured-btn active" : "outline-btn featured-btn"
+                          }
+                          onClick={() => handleToggleFeatured(req)}
+                        >
+                          {req.featured
+                            ? "✓ Showing on Website"
+                            : "Show on Website"}
+                        </button>
+                      ) : null}
                       <button
                         type="button"
                         className="request-delete-btn"

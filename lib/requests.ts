@@ -30,6 +30,7 @@ export async function uploadRequestImages(files: File[]): Promise<string[]> {
 export async function createRequest(data: {
   clientId: string;
   clientEmail: string;
+  clientName?: string;
   category: string;
   description: string;
   imageUrls: string[];
@@ -92,4 +93,21 @@ export async function rateRequest(
 
 export async function deleteRequest(id: string): Promise<void> {
   await deleteDoc(doc(db, "pixora_requests", id));
+}
+
+export async function setRequestFeatured(
+  id: string,
+  featured: boolean
+): Promise<void> {
+  await updateDoc(doc(db, "pixora_requests", id), { featured });
+}
+
+// Public — used on the homepage "What Our Clients Say" section. Only
+// requests an admin has explicitly marked as featured are returned, so
+// nothing shows up until an admin picks it.
+export async function listFeaturedTestimonials(): Promise<ProjectRequest[]> {
+  const q = query(REQUESTS_COL, where("featured", "==", true));
+  const snap = await getDocs(q);
+  const items = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ProjectRequest, "id">) }));
+  return items.sort((a, b) => (b.ratedAt ?? 0) - (a.ratedAt ?? 0));
 }

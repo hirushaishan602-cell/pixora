@@ -9,11 +9,13 @@ import {
 } from "react";
 import { getSiteConfig } from "@/lib/siteConfig";
 import { getProjects } from "@/lib/projects";
-import { SiteConfig, Project, defaultSiteConfig } from "@/lib/types";
+import { listFeaturedTestimonials } from "@/lib/requests";
+import { SiteConfig, Project, ProjectRequest, defaultSiteConfig } from "@/lib/types";
 
 type SiteDataContextValue = {
   config: SiteConfig;
   projects: Project[];
+  testimonials: ProjectRequest[];
   loading: boolean;
   refresh: () => Promise<void>;
 };
@@ -25,13 +27,19 @@ const SiteDataContext = createContext<SiteDataContextValue | undefined>(
 export function SiteDataProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<SiteConfig>(defaultSiteConfig);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [testimonials, setTestimonials] = useState<ProjectRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     try {
-      const [cfg, projs] = await Promise.all([getSiteConfig(), getProjects()]);
+      const [cfg, projs, reviews] = await Promise.all([
+        getSiteConfig(),
+        getProjects(),
+        listFeaturedTestimonials(),
+      ]);
       setConfig(cfg);
       setProjects(projs);
+      setTestimonials(reviews);
     } catch (err) {
       // keep defaults if Firebase isn't configured yet — but log so it's
       // easy to spot in devtools if projects/config aren't showing up
@@ -46,7 +54,9 @@ export function SiteDataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <SiteDataContext.Provider value={{ config, projects, loading, refresh: load }}>
+    <SiteDataContext.Provider
+      value={{ config, projects, testimonials, loading, refresh: load }}
+    >
       {children}
     </SiteDataContext.Provider>
   );

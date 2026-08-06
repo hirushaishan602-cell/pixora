@@ -60,6 +60,7 @@ export default function RequestProjectPage() {
       await createRequest({
         clientId: user.uid,
         clientEmail: user.email ?? "",
+        clientName: user.displayName || undefined,
         category,
         description,
         imageUrls,

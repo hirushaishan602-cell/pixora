@@ -1108,6 +1108,21 @@ color:#ff8a00;
 font-size:14px;
 }
 
+.testimonial-stars{
+display:flex;
+gap:4px;
+margin-bottom:18px;
+font-size:15px;
+}
+
+.testimonial-stars .star-filled{
+color:#ff8a00;
+}
+
+.testimonial-stars .star-empty{
+color:#333;
+}
+
 @media(max-width:991px){
 
 .testimonial-grid{
@@ -2390,6 +2405,12 @@ transition:.2s;
 .request-delete-btn:hover{
 background:rgba(255,80,80,.16);
 border-color:rgba(255,80,80,.6);
+}
+
+.featured-btn.active{
+background:rgba(0,200,120,.12);
+border-color:rgba(0,200,120,.5);
+color:#3ddc97;
 }
 
 .admin-approved-tag{
