@@ -55,21 +55,31 @@ export async function sendMessage(
 // and sorting in JS avoids that class of bug altogether.
 export function subscribeToMessages(
   requestId: string,
-  cb: (messages: ChatMessage[]) => void
+  cb: (messages: ChatMessage[]) => void,
+  onError?: (err: unknown) => void
 ): Unsubscribe {
   const q = query(messagesCol(requestId));
-  return onSnapshot(q, (snap) => {
-    const items = snap.docs.map((d) => ({
-      id: d.id,
-      ...(d.data() as Omit<ChatMessage, "id">),
-    }));
-    items.sort((a, b) => {
-      const aMs = (a.createdAt as unknown as Timestamp | undefined)?.toMillis?.() ?? Infinity;
-      const bMs = (b.createdAt as unknown as Timestamp | undefined)?.toMillis?.() ?? Infinity;
-      return aMs - bMs;
-    });
-    cb(items);
-  });
+  return onSnapshot(
+    q,
+    (snap) => {
+      const items = snap.docs.map((d) => ({
+        id: d.id,
+        ...(d.data() as Omit<ChatMessage, "id">),
+      }));
+      items.sort((a, b) => {
+        const aMs = (a.createdAt as unknown as Timestamp | undefined)?.toMillis?.() ?? Infinity;
+        const bMs = (b.createdAt as unknown as Timestamp | undefined)?.toMillis?.() ?? Infinity;
+        return aMs - bMs;
+      });
+      cb(items);
+    },
+    (err) => {
+      // surfaced so a permission/network problem shows up in devtools
+      // instead of silently looking like "no messages" in the UI
+      console.error("Pixora: chat listener error", requestId, err);
+      onError?.(err);
+    }
+  );
 }
 
 // Marks the chat as "seen" for whichever side (admin/client) is currently
@@ -88,13 +98,21 @@ export async function markRequestSeen(
 // Live "seen" timestamps for both sides of a request's chat.
 export function subscribeToSeenStatus(
   requestId: string,
-  cb: (seen: { clientLastSeenAt: Timestamp | null; adminLastSeenAt: Timestamp | null }) => void
+  cb: (seen: { clientLastSeenAt: Timestamp | null; adminLastSeenAt: Timestamp | null }) => void,
+  onError?: (err: unknown) => void
 ): Unsubscribe {
-  return onSnapshot(doc(db, "pixora_requests", requestId), (snap) => {
-    const data = snap.data();
-    cb({
-      clientLastSeenAt: (data?.clientLastSeenAt as Timestamp) ?? null,
-      adminLastSeenAt: (data?.adminLastSeenAt as Timestamp) ?? null,
-    });
-  });
+  return onSnapshot(
+    doc(db, "pixora_requests", requestId),
+    (snap) => {
+      const data = snap.data();
+      cb({
+        clientLastSeenAt: (data?.clientLastSeenAt as Timestamp) ?? null,
+        adminLastSeenAt: (data?.adminLastSeenAt as Timestamp) ?? null,
+      });
+    },
+    (err) => {
+      console.error("Pixora: seen-status listener error", requestId, err);
+      onError?.(err);
+    }
+  );
 }

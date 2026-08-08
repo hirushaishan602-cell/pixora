@@ -2498,6 +2498,10 @@ text-align:center;
 padding:16px 0;
 }
 
+.request-chat-error{
+color:#ff7a7a;
+}
+
 .request-chat-bubble{
 max-width:80%;
 padding:10px 14px;
