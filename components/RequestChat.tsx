@@ -29,8 +29,7 @@ export default function RequestChat({
 }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [messagesLoaded, setMessagesLoaded] = useState(false);
-  const [loadError, setLoadError] = useState(false);
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [pending, setPending] = useState<ChatMessage[]>([]);
   const [text, setText] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -45,15 +44,14 @@ export default function RequestChat({
   // (even collapsed) so the unread "new message" badge stays accurate
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMessagesLoaded(false);
-    setLoadError(false);
+    setStatus("loading");
     const unsubscribe = subscribeToMessages(
       requestId,
       (items) => {
         setMessages(items);
-        setMessagesLoaded(true);
+        setStatus("ready");
       },
-      () => setLoadError(true)
+      () => setStatus("error")
     );
     return () => unsubscribe();
   }, [requestId]);
@@ -184,9 +182,9 @@ export default function RequestChat({
       {open && (
         <div className="request-chat">
           <div className="request-chat-messages">
-            {!messagesLoaded && displayMessages.length === 0 ? (
+            {status === "loading" && displayMessages.length === 0 ? (
               <p className="request-chat-empty">Loading messages...</p>
-            ) : loadError && displayMessages.length === 0 ? (
+            ) : status === "error" && displayMessages.length === 0 ? (
               <p className="request-chat-empty request-chat-error">
                 Couldn&apos;t load messages — check your connection and reopen the chat.
               </p>
