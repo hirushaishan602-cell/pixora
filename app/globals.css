@@ -1685,6 +1685,7 @@ width:100%;
 
 .admin-form-actions{
 display:flex;
+flex-wrap:wrap;
 align-items:center;
 gap:16px;
 margin-top:6px;
@@ -2417,8 +2418,63 @@ color:#3ddc97;
    REQUEST CHAT — sample/preview thread inside a project card
 ========================================================= */
 
+.request-chat-wrap{
+display:flex;
+flex-direction:column;
+}
+
+.request-chat-toggle{
+position:relative;
+display:inline-flex;
+align-items:center;
+gap:8px;
+padding:12px 22px;
+border-radius:100px;
+border:1px solid var(--border);
+background:#161616;
+color:var(--white);
+font-size:14px;
+font-weight:500;
+width:fit-content;
+transition:.2s;
+}
+
+.request-chat-toggle:hover{
+border-color:var(--primary);
+color:var(--primary-light);
+}
+
+.request-chat-wrap.open .request-chat-toggle{
+border-color:var(--primary);
+background:rgba(255,138,0,.1);
+color:var(--primary-light);
+}
+
+.request-chat-badge{
+position:absolute;
+top:-3px;
+right:-3px;
+width:11px;
+height:11px;
+border-radius:50%;
+background:#ff5050;
+border:2px solid var(--bg);
+}
+
+/* on an actions row (next to "Mark Project Complete" etc.), the toggle
+   sits inline as a compact pill; once opened, the panel claims the full
+   row width instead of squeezing beside the other button */
+.admin-form-actions .request-chat-wrap{
+flex:0 0 auto;
+}
+
+.admin-form-actions .request-chat-wrap.open{
+flex-basis:100%;
+order:2;
+}
+
 .request-chat{
-margin-top:16px;
+margin-top:14px;
 padding-top:16px;
 border-top:1px solid var(--border);
 display:flex;

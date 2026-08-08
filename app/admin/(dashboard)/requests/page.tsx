@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { listAllRequests, approveRequest, completeRequest, deleteRequest, setRequestFeatured } from "@/lib/requests";
 import { ProjectRequest } from "@/lib/types";
+import RequestChat from "@/components/RequestChat";
 
 const statusLabel: Record<ProjectRequest["status"], string> = {
   pending: "Pending",
@@ -188,17 +189,38 @@ export default function AdminRequestsPage() {
                     <p className="admin-approved-tag">
                       Approved by <strong>{req.approvedBy}</strong>
                     </p>
+
                     {openCompleteId === req.id ? (
-                      <CompleteForm
-                        request={req}
-                        adminEmail={user?.email ?? ""}
-                        onDone={() => {
-                          setOpenCompleteId(null);
-                          load();
-                        }}
-                      />
+                      <>
+                        <CompleteForm
+                          request={req}
+                          adminEmail={user?.email ?? ""}
+                          onDone={() => {
+                            setOpenCompleteId(null);
+                            load();
+                          }}
+                        />
+                        <div className="admin-form-actions">
+                          <RequestChat
+                            requestId={req.id}
+                            clientId={req.clientId}
+                            currentUid={user?.uid ?? ""}
+                            currentEmail={user?.email ?? ""}
+                            currentRole="admin"
+                            locked={false}
+                          />
+                        </div>
+                      </>
                     ) : (
                       <div className="admin-form-actions">
+                        <RequestChat
+                          requestId={req.id}
+                          clientId={req.clientId}
+                          currentUid={user?.uid ?? ""}
+                          currentEmail={user?.email ?? ""}
+                          currentRole="admin"
+                          locked={false}
+                        />
                         <button
                           className="primary-btn"
                           onClick={() => setOpenCompleteId(req.id)}
@@ -224,7 +246,16 @@ export default function AdminRequestsPage() {
                     ) : (
                       <p className="admin-subtitle">Waiting for client&apos;s rating.</p>
                     )}
+
                     <div className="admin-form-actions">
+                      <RequestChat
+                        requestId={req.id}
+                        clientId={req.clientId}
+                        currentUid={user?.uid ?? ""}
+                        currentEmail={user?.email ?? ""}
+                        currentRole="admin"
+                        locked={true}
+                      />
                       {req.rating ? (
                         <button
                           type="button"
