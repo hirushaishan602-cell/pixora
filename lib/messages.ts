@@ -33,10 +33,15 @@ export async function sendMessage(
     imageUrl?: string;
   }
 ): Promise<void> {
-  await addDoc(messagesCol(requestId), {
-    ...data,
-    createdAt: serverTimestamp(),
-  });
+  // Firestore's addDoc() throws on any field whose value is `undefined`
+  // (e.g. imageUrl when there's no attachment) — strip those out first so
+  // a text-only or image-only message can actually be sent.
+  const payload: Record<string, unknown> = { createdAt: serverTimestamp() };
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined) payload[key] = value;
+  }
+
+  await addDoc(messagesCol(requestId), payload);
 }
 
 // Live-updating chat thread — calls `cb` with the full message list every

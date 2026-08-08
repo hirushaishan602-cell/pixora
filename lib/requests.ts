@@ -32,11 +32,17 @@ export async function createRequest(data: {
   description: string;
   imageUrls: string[];
 }): Promise<void> {
-  await addDoc(REQUESTS_COL, {
-    ...data,
+  // same Firestore quirk as the chat: addDoc() rejects any `undefined`
+  // field (clientName is optional), so strip those out before sending
+  const payload: Record<string, unknown> = {
     status: "pending",
     createdAt: serverTimestamp(),
-  });
+  };
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined) payload[key] = value;
+  }
+
+  await addDoc(REQUESTS_COL, payload);
 }
 
 export async function listAllRequests(): Promise<ProjectRequest[]> {
