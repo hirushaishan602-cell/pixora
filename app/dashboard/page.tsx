@@ -9,6 +9,7 @@ import { listRequestsForClient, deleteRequest } from "@/lib/requests";
 import { ProjectRequest } from "@/lib/types";
 import ProjectRatingBox from "@/components/ProjectRatingBox";
 import BackButton from "@/components/BackButton";
+import RequestChat from "@/components/RequestChat";
 
 const statusLabel: Record<ProjectRequest["status"], string> = {
   pending: "Awaiting Review",
@@ -108,10 +109,20 @@ export default function ClientDashboardPage() {
               )}
 
               {req.status === "approved" && (
-                <p className="client-request-note">
-                  Your project is being worked on. We&apos;ll notify you here once it&apos;s
-                  complete.
-                </p>
+                <>
+                  <p className="client-request-note">
+                    Your project is being worked on. We&apos;ll notify you here once it&apos;s
+                    complete.
+                  </p>
+                  <RequestChat
+                    requestId={req.id}
+                    clientId={req.clientId}
+                    currentUid={user.uid}
+                    currentEmail={user.email ?? ""}
+                    currentRole="client"
+                    locked={false}
+                  />
+                </>
               )}
 
               {req.status === "completed" && (
@@ -137,6 +148,15 @@ export default function ClientDashboardPage() {
                   ) : (
                     <ProjectRatingBox request={req} onRated={() => load(user.uid)} />
                   )}
+
+                  <RequestChat
+                    requestId={req.id}
+                    clientId={req.clientId}
+                    currentUid={user.uid}
+                    currentEmail={user.email ?? ""}
+                    currentRole="client"
+                    locked={true}
+                  />
 
                   <button
                     type="button"

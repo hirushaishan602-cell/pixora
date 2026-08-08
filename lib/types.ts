@@ -122,3 +122,18 @@ export type ProjectRequest = {
   // enough to show publicly in the homepage "What Our Clients Say" section
   featured?: boolean;
 };
+
+// A single chat message exchanged inside a request's chat thread
+// (stored in the pixora_requests/{requestId}/messages subcollection)
+export type ChatMessage = {
+  id: string;
+  requestId: string;
+  clientId: string; // the request's client — kept on every message so
+                     // Firestore rules can check access without a lookup
+  senderId: string;
+  senderRole: "admin" | "client";
+  senderEmail: string;
+  text?: string;
+  imageUrl?: string;
+  createdAt?: number;
+};
