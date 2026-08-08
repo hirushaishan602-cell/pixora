@@ -29,6 +29,7 @@ export default function RequestChat({
 }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [pending, setPending] = useState<ChatMessage[]>([]);
   const [text, setText] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -65,7 +66,7 @@ export default function RequestChat({
   useEffect(() => {
     if (!open) return;
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length, open]);
+  }, [messages.length, pending.length, open]);
 
   const handlePickImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -83,14 +84,33 @@ export default function RequestChat({
   const handleSend = async () => {
     const outgoingText = text.trim();
     const outgoingFile = imageFile;
+    const outgoingPreview = imagePreview;
     if (!outgoingText && !outgoingFile) return;
 
     // clear the box immediately so it never feels locked while the
-    // upload/send happens in the background — the message appears in
-    // the thread itself the moment it's actually saved
+    // upload/send happens in the background
     setText("");
     clearImage();
     setError("");
+
+    // show the message instantly (WhatsApp-style optimistic send) — a
+    // Firestore quirk means a doc using serverTimestamp() in its orderBy
+    // field doesn't appear in the live query until the server round-trip
+    // finishes, so without this the bubble would feel like it "didn't send"
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    setPending((p) => [
+      ...p,
+      {
+        id: tempId,
+        requestId,
+        clientId,
+        senderId: currentUid,
+        senderRole: currentRole,
+        senderEmail: currentEmail,
+        text: outgoingText || undefined,
+        imageUrl: outgoingPreview || undefined,
+      },
+    ]);
 
     try {
       let imageUrl: string | undefined;
@@ -107,11 +127,17 @@ export default function RequestChat({
       });
     } catch {
       setError("A message couldn't be sent. Please try again.");
+    } finally {
+      setPending((p) => p.filter((m) => m.id !== tempId));
     }
   };
 
+  // confirmed messages + anything still in flight, so the sender always
+  // sees their own message the instant they hit send
+  const displayMessages = [...messages, ...pending];
+
   // find the last message *I* sent, so a single "Seen" tag can sit under it
-  const lastMineId = [...messages].reverse().find((m) => m.senderRole === currentRole)?.id;
+  const lastMineId = [...displayMessages].reverse().find((m) => m.senderRole === currentRole)?.id;
 
   const isSeenByOther = (m: ChatMessage) => {
     if (m.id !== lastMineId || !otherSeenAt) return false;
@@ -146,17 +172,19 @@ export default function RequestChat({
       {open && (
         <div className="request-chat">
           <div className="request-chat-messages">
-            {messages.length === 0 ? (
+            {displayMessages.length === 0 ? (
               <p className="request-chat-empty">
                 {locked
                   ? "No messages were sent for this project."
                   : "Say hello — samples and updates for this project will show up here."}
               </p>
             ) : (
-              messages.map((m) => (
+              displayMessages.map((m) => (
                 <div
                   key={m.id}
-                  className={`request-chat-bubble ${m.senderRole === currentRole ? "mine" : "theirs"}`}
+                  className={`request-chat-bubble ${m.senderRole === currentRole ? "mine" : "theirs"} ${
+                    m.id.startsWith("temp-") ? "sending" : ""
+                  }`}
                 >
                   <span className="request-chat-sender">
                     {m.senderRole === "admin" ? "PIXORA Team" : "Client"}

@@ -2513,6 +2513,10 @@ background:rgba(255,138,0,.12);
 border-color:rgba(255,138,0,.35);
 }
 
+.request-chat-bubble.sending{
+opacity:.55;
+}
+
 .request-chat-sender{
 display:block;
 font-size:11px;
