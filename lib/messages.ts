@@ -1,10 +1,13 @@
 import {
   collection,
   addDoc,
+  doc,
+  updateDoc,
   query,
   orderBy,
   onSnapshot,
   serverTimestamp,
+  Timestamp,
   Unsubscribe,
 } from "firebase/firestore";
 import { db } from "./firebase";
@@ -49,5 +52,32 @@ export function subscribeToMessages(
       ...(d.data() as Omit<ChatMessage, "id">),
     }));
     cb(items);
+  });
+}
+
+// Marks the chat as "seen" for whichever side (admin/client) is currently
+// looking at it — lets the other side see a "Seen" tag under their last
+// message, the same way both admin and client can see when they were read.
+export async function markRequestSeen(
+  requestId: string,
+  role: "admin" | "client"
+): Promise<void> {
+  const field = role === "admin" ? "adminLastSeenAt" : "clientLastSeenAt";
+  await updateDoc(doc(db, "pixora_requests", requestId), {
+    [field]: serverTimestamp(),
+  });
+}
+
+// Live "seen" timestamps for both sides of a request's chat.
+export function subscribeToSeenStatus(
+  requestId: string,
+  cb: (seen: { clientLastSeenAt: Timestamp | null; adminLastSeenAt: Timestamp | null }) => void
+): Unsubscribe {
+  return onSnapshot(doc(db, "pixora_requests", requestId), (snap) => {
+    const data = snap.data();
+    cb({
+      clientLastSeenAt: (data?.clientLastSeenAt as Timestamp) ?? null,
+      adminLastSeenAt: (data?.adminLastSeenAt as Timestamp) ?? null,
+    });
   });
 }

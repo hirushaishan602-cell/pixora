@@ -121,6 +121,11 @@ export type ProjectRequest = {
   // set by an admin once they decide a client's rating/comment is good
   // enough to show publicly in the homepage "What Our Clients Say" section
   featured?: boolean;
+
+  // read-receipt style "seen" tracking for the chat thread — updated
+  // whenever that side has the chat open
+  clientLastSeenAt?: number;
+  adminLastSeenAt?: number;
 };
 
 // A single chat message exchanged inside a request's chat thread

@@ -1,9 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { FaPaperPlane, FaImage, FaTimes } from "react-icons/fa";
-import { subscribeToMessages, sendMessage, uploadChatImage } from "@/lib/messages";
+import { FaPaperPlane, FaImage, FaTimes, FaCheckDouble } from "react-icons/fa";
+import {
+  subscribeToMessages,
+  sendMessage,
+  uploadChatImage,
+  markRequestSeen,
+  subscribeToSeenStatus,
+} from "@/lib/messages";
 import { ChatMessage } from "@/lib/types";
+import { Timestamp } from "firebase/firestore";
 
 export default function RequestChat({
   requestId,
@@ -26,6 +33,7 @@ export default function RequestChat({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [otherSeenAt, setOtherSeenAt] = useState<Timestamp | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -33,6 +41,22 @@ export default function RequestChat({
     const unsubscribe = subscribeToMessages(requestId, setMessages);
     return () => unsubscribe();
   }, [requestId]);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToSeenStatus(requestId, (seen) => {
+      setOtherSeenAt(
+        currentRole === "admin" ? seen.clientLastSeenAt : seen.adminLastSeenAt
+      );
+    });
+    return () => unsubscribe();
+  }, [requestId, currentRole]);
+
+  // mark as seen whenever this chat is open and whenever a new message
+  // arrives while it's still open, so the other side gets a live "Seen"
+  useEffect(() => {
+    if (locked) return;
+    markRequestSeen(requestId, currentRole).catch(() => {});
+  }, [requestId, currentRole, locked, messages.length]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -77,6 +101,17 @@ export default function RequestChat({
     }
   };
 
+  // find the last message *I* sent, so a single "Seen" tag can sit under it
+  // — same behaviour on both the admin and the client side
+  const lastMineId = [...messages].reverse().find((m) => m.senderRole === currentRole)?.id;
+
+  const isSeenByOther = (m: ChatMessage) => {
+    if (m.id !== lastMineId || !otherSeenAt) return false;
+    const createdAt = m.createdAt as unknown as Timestamp | undefined;
+    if (!createdAt?.toMillis) return false;
+    return otherSeenAt.toMillis() >= createdAt.toMillis();
+  };
+
   return (
     <div className="request-chat">
       <div className="request-chat-messages">
@@ -100,6 +135,11 @@ export default function RequestChat({
                 <img src={m.imageUrl} alt="Shared attachment" />
               )}
               {m.text && <p>{m.text}</p>}
+              {isSeenByOther(m) && (
+                <span className="request-chat-seen">
+                  <FaCheckDouble /> Seen
+                </span>
+              )}
             </div>
           ))
         )}
