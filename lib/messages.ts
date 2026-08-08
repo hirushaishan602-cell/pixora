@@ -4,7 +4,6 @@ import {
   doc,
   updateDoc,
   query,
-  orderBy,
   onSnapshot,
   serverTimestamp,
   Timestamp,
@@ -46,16 +45,29 @@ export async function sendMessage(
 
 // Live-updating chat thread — calls `cb` with the full message list every
 // time something changes. Call the returned function to stop listening.
+//
+// Deliberately NOT using orderBy("createdAt") in the query: Firestore
+// excludes a doc from an *ordered* snapshot until its serverTimestamp()
+// field is resolved by the server, which — combined with this
+// collection's security rules needing an extra get() to validate writes —
+// meant a client's own message would flash on screen and then vanish
+// entirely instead of just appearing a little late. Fetching unordered
+// and sorting in JS avoids that class of bug altogether.
 export function subscribeToMessages(
   requestId: string,
   cb: (messages: ChatMessage[]) => void
 ): Unsubscribe {
-  const q = query(messagesCol(requestId), orderBy("createdAt", "asc"));
+  const q = query(messagesCol(requestId));
   return onSnapshot(q, (snap) => {
     const items = snap.docs.map((d) => ({
       id: d.id,
       ...(d.data() as Omit<ChatMessage, "id">),
     }));
+    items.sort((a, b) => {
+      const aMs = (a.createdAt as unknown as Timestamp | undefined)?.toMillis?.() ?? Infinity;
+      const bMs = (b.createdAt as unknown as Timestamp | undefined)?.toMillis?.() ?? Infinity;
+      return aMs - bMs;
+    });
     cb(items);
   });
 }
