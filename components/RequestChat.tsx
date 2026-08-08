@@ -32,7 +32,6 @@ export default function RequestChat({
   const [text, setText] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [mySeenAt, setMySeenAt] = useState<Timestamp | null>(null);
   const [otherSeenAt, setOtherSeenAt] = useState<Timestamp | null>(null);
@@ -82,28 +81,32 @@ export default function RequestChat({
   };
 
   const handleSend = async () => {
-    if (!text.trim() && !imageFile) return;
+    const outgoingText = text.trim();
+    const outgoingFile = imageFile;
+    if (!outgoingText && !outgoingFile) return;
+
+    // clear the box immediately so it never feels locked while the
+    // upload/send happens in the background — the message appears in
+    // the thread itself the moment it's actually saved
+    setText("");
+    clearImage();
     setError("");
-    setSending(true);
+
     try {
       let imageUrl: string | undefined;
-      if (imageFile) {
-        imageUrl = await uploadChatImage(imageFile);
+      if (outgoingFile) {
+        imageUrl = await uploadChatImage(outgoingFile);
       }
       await sendMessage(requestId, {
         clientId,
         senderId: currentUid,
         senderRole: currentRole,
         senderEmail: currentEmail,
-        text: text.trim() || undefined,
+        text: outgoingText || undefined,
         imageUrl,
       });
-      setText("");
-      clearImage();
     } catch {
-      setError("Message couldn't be sent. Please try again.");
-    } finally {
-      setSending(false);
+      setError("A message couldn't be sent. Please try again.");
     }
   };
 
@@ -221,7 +224,7 @@ export default function RequestChat({
                   type="button"
                   className="request-chat-send"
                   onClick={handleSend}
-                  disabled={sending || (!text.trim() && !imageFile)}
+                  disabled={!text.trim() && !imageFile}
                   aria-label="Send message"
                 >
                   <FaPaperPlane />
