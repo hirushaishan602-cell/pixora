@@ -11,13 +11,9 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { Project } from "./types";
+import { uploadToCloudinary } from "./cloudinary";
 
 const PROJECTS_COL = collection(db, "pixora_projects");
-
-// Project images are hosted on Cloudinary (unsigned upload preset) instead
-// of Firebase Storage — only the resulting image URL is stored in Firestore.
-const CLOUDINARY_CLOUD_NAME = "drf1c9d3o";
-const CLOUDINARY_UPLOAD_PRESET = "pixora";
 
 export async function getProjects(): Promise<Project[]> {
   const q = query(PROJECTS_COL, orderBy("order", "asc"));
@@ -26,22 +22,7 @@ export async function getProjects(): Promise<Project[]> {
 }
 
 export async function uploadProjectImage(file: File): Promise<string> {
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
-  formData.append("folder", "pixora-projects");
-
-  const res = await fetch(
-    `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
-    { method: "POST", body: formData }
-  );
-
-  if (!res.ok) {
-    throw new Error("Cloudinary upload failed. Check the cloud name / upload preset.");
-  }
-
-  const data = await res.json();
-  return data.secure_url as string;
+  return uploadToCloudinary(file, "pixora-projects");
 }
 
 export async function addProject(

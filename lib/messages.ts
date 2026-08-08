@@ -7,19 +7,16 @@ import {
   serverTimestamp,
   Unsubscribe,
 } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { db, storage } from "./firebase";
+import { db } from "./firebase";
 import { ChatMessage } from "./types";
+import { uploadToCloudinary } from "./cloudinary";
 
 function messagesCol(requestId: string) {
   return collection(db, "pixora_requests", requestId, "messages");
 }
 
 export async function uploadChatImage(file: File): Promise<string> {
-  const path = `pixora-chat/${Date.now()}-${file.name}`;
-  const storageRef = ref(storage, path);
-  await uploadBytes(storageRef, file);
-  return getDownloadURL(storageRef);
+  return uploadToCloudinary(file, "pixora-chat");
 }
 
 export async function sendMessage(

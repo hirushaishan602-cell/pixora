@@ -10,17 +10,14 @@ import {
   orderBy,
   serverTimestamp,
 } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { db, storage } from "./firebase";
+import { db } from "./firebase";
 import { ProjectRequest } from "./types";
+import { uploadToCloudinary } from "./cloudinary";
 
 const REQUESTS_COL = collection(db, "pixora_requests");
 
 export async function uploadRequestImage(file: File): Promise<string> {
-  const path = `pixora-requests/${Date.now()}-${file.name}`;
-  const storageRef = ref(storage, path);
-  await uploadBytes(storageRef, file);
-  return getDownloadURL(storageRef);
+  return uploadToCloudinary(file, "pixora-requests");
 }
 
 export async function uploadRequestImages(files: File[]): Promise<string[]> {
