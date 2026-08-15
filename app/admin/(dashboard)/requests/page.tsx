@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { listAllRequests, approveRequest, completeRequest, deleteRequest, setRequestFeatured } from "@/lib/requests";
@@ -80,7 +81,17 @@ function CompleteForm({
 }
 
 export default function AdminRequestsPage() {
+  return (
+    <Suspense fallback={<p>Loading...</p>}>
+      <AdminRequestsInner />
+    </Suspense>
+  );
+}
+
+function AdminRequestsInner() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const chatRequestId = searchParams.get("chat");
   const [requests, setRequests] = useState<ProjectRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -208,6 +219,7 @@ export default function AdminRequestsPage() {
                             currentEmail={user?.email ?? ""}
                             currentRole="admin"
                             locked={false}
+                            initiallyOpen={chatRequestId === req.id}
                           />
                         </div>
                       </>
@@ -220,6 +232,7 @@ export default function AdminRequestsPage() {
                           currentEmail={user?.email ?? ""}
                           currentRole="admin"
                           locked={false}
+                          initiallyOpen={chatRequestId === req.id}
                         />
                         <button
                           className="primary-btn"
@@ -255,6 +268,7 @@ export default function AdminRequestsPage() {
                         currentEmail={user?.email ?? ""}
                         currentRole="admin"
                         locked={true}
+                        initiallyOpen={chatRequestId === req.id}
                       />
                       {req.rating ? (
                         <button

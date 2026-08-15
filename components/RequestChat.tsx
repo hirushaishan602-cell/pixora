@@ -7,7 +7,7 @@ import {
   sendMessage,
   uploadChatImage,
   markRequestSeen,
-  subscribeToSeenStatus,
+  subscribeToRequestMeta,
 } from "@/lib/messages";
 import { ChatMessage } from "@/lib/types";
 import { Timestamp } from "firebase/firestore";
@@ -19,6 +19,7 @@ export default function RequestChat({
   currentEmail,
   currentRole,
   locked,
+  initiallyOpen,
 }: {
   requestId: string;
   clientId: string;
@@ -26,8 +27,9 @@ export default function RequestChat({
   currentEmail: string;
   currentRole: "admin" | "client";
   locked: boolean;
+  initiallyOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(!!initiallyOpen);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [pending, setPending] = useState<ChatMessage[]>([]);
@@ -38,6 +40,7 @@ export default function RequestChat({
   const [mySeenAt, setMySeenAt] = useState<Timestamp | null>(null);
   const [otherSeenAt, setOtherSeenAt] = useState<Timestamp | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // messages + seen status are tracked in the background at all times
@@ -57,14 +60,22 @@ export default function RequestChat({
   }, [requestId]);
 
   useEffect(() => {
-    const unsubscribe = subscribeToSeenStatus(requestId, (seen) => {
-      const mine = currentRole === "admin" ? seen.adminLastSeenAt : seen.clientLastSeenAt;
-      const other = currentRole === "admin" ? seen.clientLastSeenAt : seen.adminLastSeenAt;
+    const unsubscribe = subscribeToRequestMeta(requestId, (meta) => {
+      const mine = currentRole === "admin" ? meta.adminLastSeenAt : meta.clientLastSeenAt;
+      const other = currentRole === "admin" ? meta.clientLastSeenAt : meta.adminLastSeenAt;
       setMySeenAt(mine);
       setOtherSeenAt(other);
     });
     return () => unsubscribe();
   }, [requestId, currentRole]);
+
+  // scroll a deep-linked chat (opened from a notification toast) into view
+  useEffect(() => {
+    if (initiallyOpen) {
+      wrapRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // mark as seen only while the panel is actually open, and whenever a new
   // message arrives while it's open — this is also what clears the badge
@@ -103,10 +114,7 @@ export default function RequestChat({
     clearImage();
     setError("");
 
-    // show the message instantly (WhatsApp-style optimistic send) — a
-    // Firestore quirk means a doc using serverTimestamp() in its orderBy
-    // field doesn't appear in the live query until the server round-trip
-    // finishes, so without this the bubble would feel like it "didn't send"
+    // show the message instantly (WhatsApp-style optimistic send)
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     setPending((p) => [
       ...p,
@@ -168,7 +176,7 @@ export default function RequestChat({
   })();
 
   return (
-    <div className={`request-chat-wrap ${open ? "open" : ""}`}>
+    <div ref={wrapRef} className={`request-chat-wrap ${open ? "open" : ""}`}>
       <button
         type="button"
         className="request-chat-toggle"

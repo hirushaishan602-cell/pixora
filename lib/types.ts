@@ -126,6 +126,13 @@ export type ProjectRequest = {
   // whenever that side has the chat open
   clientLastSeenAt?: number;
   adminLastSeenAt?: number;
+
+  // denormalized "last message" preview, updated every time a chat
+  // message is sent — powers the site-wide notification toast without
+  // needing a listener on every request's messages subcollection
+  lastMessageAt?: number;
+  lastMessageText?: string;
+  lastMessageSenderRole?: "admin" | "client";
 };
 
 // A single chat message exchanged inside a request's chat thread

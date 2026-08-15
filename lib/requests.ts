@@ -5,10 +5,12 @@ import {
   deleteDoc,
   doc,
   getDocs,
+  onSnapshot,
   query,
   where,
   orderBy,
   serverTimestamp,
+  Unsubscribe,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { ProjectRequest } from "./types";
@@ -113,4 +115,32 @@ export async function listFeaturedTestimonials(): Promise<ProjectRequest[]> {
   const snap = await getDocs(q);
   const items = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ProjectRequest, "id">) }));
   return items.sort((a, b) => (b.ratedAt ?? 0) - (a.ratedAt ?? 0));
+}
+
+// Live list of every request that could currently have an active chat —
+// a client's own requests, or (for an admin) every approved request site
+// -wide. This is deliberately the ONLY chat-related listener that's kept
+// open on every page, so the site-wide "new message" toast can work no
+// matter what page you're on without opening a listener per chat thread.
+export function subscribeToRequestsForNotifications(
+  role: "admin" | "client",
+  uid: string,
+  cb: (requests: ProjectRequest[]) => void,
+  onError?: (err: unknown) => void
+): Unsubscribe {
+  const q =
+    role === "admin"
+      ? query(REQUESTS_COL, where("status", "==", "approved"))
+      : query(REQUESTS_COL, where("clientId", "==", uid));
+
+  return onSnapshot(
+    q,
+    (snap) => {
+      cb(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ProjectRequest, "id">) })));
+    },
+    (err) => {
+      console.error("Pixora: request-notification listener error", err);
+      onError?.(err);
+    }
+  );
 }

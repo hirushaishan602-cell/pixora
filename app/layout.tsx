@@ -3,6 +3,7 @@ import { Poppins } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { SiteDataProvider } from "@/context/SiteDataContext";
+import { ChatNotificationProvider } from "@/context/ChatNotificationContext";
 import RatingPopup from "@/components/RatingPopup";
 
 const poppins = Poppins({
@@ -25,8 +26,10 @@ export default function RootLayout({
       <body className={poppins.className}>
         <AuthProvider>
           <SiteDataProvider>
-            {children}
-            <RatingPopup />
+            <ChatNotificationProvider>
+              {children}
+              <RatingPopup />
+            </ChatNotificationProvider>
           </SiteDataProvider>
         </AuthProvider>
       </body>

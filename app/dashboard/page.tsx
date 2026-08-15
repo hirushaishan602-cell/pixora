@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
@@ -18,8 +18,18 @@ const statusLabel: Record<ProjectRequest["status"], string> = {
 };
 
 export default function ClientDashboardPage() {
+  return (
+    <Suspense fallback={<div className="admin-auth-screen"><p>Loading...</p></div>}>
+      <ClientDashboardInner />
+    </Suspense>
+  );
+}
+
+function ClientDashboardInner() {
   const { user, role, loading, logout } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const chatRequestId = searchParams.get("chat");
   const [requests, setRequests] = useState<ProjectRequest[]>([]);
   const [loadingRequests, setLoadingRequests] = useState(true);
 
@@ -121,6 +131,7 @@ export default function ClientDashboardPage() {
                     currentEmail={user.email ?? ""}
                     currentRole="client"
                     locked={false}
+                    initiallyOpen={chatRequestId === req.id}
                   />
                 </>
               )}
@@ -156,6 +167,7 @@ export default function ClientDashboardPage() {
                     currentEmail={user.email ?? ""}
                     currentRole="client"
                     locked={true}
+                    initiallyOpen={chatRequestId === req.id}
                   />
 
                   <button
