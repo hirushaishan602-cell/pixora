@@ -4,6 +4,7 @@ import {
   updateDoc,
   writeBatch,
   query,
+  where,
   onSnapshot,
   serverTimestamp,
   Timestamp,
@@ -57,17 +58,35 @@ export async function sendMessage(
 // Live-updating chat thread — calls `cb` with the full message list every
 // time something changes. Call the returned function to stop listening.
 //
-// Deliberately NOT using orderBy("createdAt") in the query: Firestore
-// excludes a doc from an *ordered* snapshot until its serverTimestamp()
-// field is resolved by the server, which can make a just-sent message
-// vanish instead of just appearing a little late. Fetching unordered and
-// sorting in JS avoids that entirely.
+// Two deliberate choices here, both working around real Firestore quirks:
+//
+// 1. NOT using orderBy("createdAt"): Firestore excludes a doc from an
+//    *ordered* snapshot until its serverTimestamp() field is resolved by
+//    the server, which can make a just-sent message vanish instead of
+//    just appearing a little late. Sorting in JS avoids that entirely.
+//
+// 2. For a client, the query itself is filtered with where("clientId",
+//    "==", uid) even though every doc in this subcollection already
+//    belongs to that one client. This isn't for extra filtering — it's
+//    because Firestore validates security rules against the *query
+//    shape* for list operations, not just per returned document. A
+//    completely unconstrained collection query couldn't be proven safe
+//    against a rule that depends on resource.data.clientId, and got
+//    rejected outright with permission-denied for clients (while an
+//    admin's query worked, since isPixoraAdmin() doesn't depend on the
+//    document at all). Matching the query's where() to the rule's
+//    condition is the fix Firestore itself recommends for this.
 export function subscribeToMessages(
   requestId: string,
+  viewer: { role: "admin" | "client"; clientId: string },
   cb: (messages: ChatMessage[]) => void,
   onError?: (err: unknown) => void
 ): Unsubscribe {
-  const q = query(messagesCol(requestId));
+  const q =
+    viewer.role === "admin"
+      ? query(messagesCol(requestId))
+      : query(messagesCol(requestId), where("clientId", "==", viewer.clientId));
+
   return onSnapshot(
     q,
     (snap) => {

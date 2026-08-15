@@ -51,6 +51,7 @@ export default function RequestChat({
     setStatus("loading");
     const unsubscribe = subscribeToMessages(
       requestId,
+      { role: currentRole, clientId },
       (items) => {
         setMessages(items);
         setStatus("ready");
@@ -62,7 +63,7 @@ export default function RequestChat({
       }
     );
     return () => unsubscribe();
-  }, [requestId]);
+  }, [requestId, currentRole, clientId]);
 
   useEffect(() => {
     const unsubscribe = subscribeToRequestMeta(requestId, (meta) => {
