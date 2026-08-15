@@ -32,6 +32,7 @@ export default function RequestChat({
   const [open, setOpen] = useState(!!initiallyOpen);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [errorCode, setErrorCode] = useState<string>("");
   const [pending, setPending] = useState<ChatMessage[]>([]);
   const [text, setText] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -54,7 +55,11 @@ export default function RequestChat({
         setMessages(items);
         setStatus("ready");
       },
-      () => setStatus("error")
+      (err) => {
+        setStatus("error");
+        const code = (err as { code?: string } | null)?.code;
+        setErrorCode(code ?? "unknown");
+      }
     );
     return () => unsubscribe();
   }, [requestId]);
@@ -194,7 +199,8 @@ export default function RequestChat({
               <p className="request-chat-empty">Loading messages...</p>
             ) : status === "error" && displayMessages.length === 0 ? (
               <p className="request-chat-empty request-chat-error">
-                Couldn&apos;t load messages — check your connection and reopen the chat.
+                Couldn&apos;t load messages ({errorCode}) — check your connection and reopen the
+                chat.
               </p>
             ) : displayMessages.length === 0 ? (
               <p className="request-chat-empty">
