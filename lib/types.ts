@@ -105,6 +105,7 @@ export type ProjectRequest = {
   imageUrls: string[];
   status: RequestStatus;
   createdAt?: number;
+  featured?: boolean;
 
   approvedBy?: string; // admin email who approved
   approvedByUid?: string;
