@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useState, FormEvent } from "react";
+import { useEffect, useState, FormEvent, ChangeEvent } from "react";
 import { getSiteConfig, updateSiteConfig } from "@/lib/siteConfig";
 import { SiteConfig, defaultSiteConfig } from "@/lib/types";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 
 export default function AdminSettingsPage() {
   const [config, setConfig] = useState<SiteConfig>(defaultSiteConfig);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [uploadingArtwork, setUploadingArtwork] = useState(false);
+  const [artworkError, setArtworkError] = useState("");
 
   useEffect(() => {
     getSiteConfig().then((c) => {
@@ -31,6 +34,31 @@ export default function AdminSettingsPage() {
     const stats = [...config.stats];
     stats[index] = { ...stats[index], [key]: value };
     setConfig({ ...config, stats });
+  };
+
+  const handleAddArtwork = async (e: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+    setArtworkError("");
+    setUploadingArtwork(true);
+    try {
+      const urls = await Promise.all(
+        files.map((file) => uploadToCloudinary(file, "pixora-hero"))
+      );
+      setConfig((c) => ({ ...c, heroArtworks: [...c.heroArtworks, ...urls] }));
+    } catch {
+      setArtworkError("Upload failed — check the Cloudinary cloud name / upload preset.");
+    } finally {
+      setUploadingArtwork(false);
+      e.target.value = "";
+    }
+  };
+
+  const removeArtwork = (index: number) => {
+    setConfig((c) => ({
+      ...c,
+      heroArtworks: c.heroArtworks.filter((_, i) => i !== index),
+    }));
   };
 
   if (loading) return <div className="admin-page"><p>Loading...</p></div>;
@@ -86,6 +114,35 @@ export default function AdminSettingsPage() {
             }
           />
         </label>
+
+        <label>Hero Artwork</label>
+        <p className="admin-inline-note">
+          Add as many images as you like — they&apos;ll auto-slide on the homepage
+          every few seconds. With just one image, it stays still like before.
+        </p>
+        <div className="admin-artwork-grid">
+          {config.heroArtworks.map((src, i) => (
+            <div key={src + i} className="admin-artwork-item">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={src} alt={`Artwork ${i + 1}`} />
+              <button type="button" className="danger" onClick={() => removeArtwork(i)}>
+                Remove
+              </button>
+            </div>
+          ))}
+          <label className="admin-artwork-upload">
+            {uploadingArtwork ? "Uploading..." : "+ Add Artwork"}
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              hidden
+              disabled={uploadingArtwork}
+              onChange={handleAddArtwork}
+            />
+          </label>
+        </div>
+        {artworkError && <p className="admin-auth-error">{artworkError}</p>}
 
         <h2>About Section</h2>
         <label>

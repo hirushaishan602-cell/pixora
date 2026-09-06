@@ -1,6 +1,6 @@
 // Every image on the site (project portfolio images, client request photos,
-// chat attachments) is uploaded straight to Cloudinary from the browser
-// using an unsigned upload preset — no Firebase Storage involved anywhere.
+// chat attachments, hero artwork) is uploaded straight to Cloudinary from
+// the browser using an unsigned upload preset — no Firebase Storage needed.
 
 const CLOUDINARY_CLOUD_NAME = "drf1c9d3o";
 const CLOUDINARY_UPLOAD_PRESET = "pixora";

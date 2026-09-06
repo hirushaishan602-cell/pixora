@@ -18,6 +18,7 @@ export type SiteConfig = {
   heroTag: string;
   heroTitle: string;
   heroDescription: string;
+  heroArtworks: string[];
   aboutTitle: string;
   aboutText: string;
   contactEmail: string;
@@ -39,6 +40,7 @@ export const defaultSiteConfig: SiteConfig = {
   heroTitle: "We Create Premium Branding & Digital Experiences",
   heroDescription:
     "Logo Design, Brand Identity, Social Media Designs, Packaging, Printing and everything your business needs to stand out.",
+  heroArtworks: ["/images/hero.png"],
   aboutTitle: "Building Powerful Brands Through Creative Design.",
   aboutText:
     "At PIXORA, we specialize in branding, logo design, advertising, social media creatives and print solutions. Every design is crafted to make your business memorable and professional.",
@@ -98,7 +100,6 @@ export type ProjectRequest = {
   id: string;
   clientId: string;
   clientEmail: string;
-  clientName?: string;
   category: string;
   description: string;
   imageUrls: string[];
@@ -117,35 +118,4 @@ export type ProjectRequest = {
   rating?: number;
   comment?: string;
   ratedAt?: number;
-
-  // set by an admin once they decide a client's rating/comment is good
-  // enough to show publicly in the homepage "What Our Clients Say" section
-  featured?: boolean;
-
-  // read-receipt style "seen" tracking for the chat thread — updated
-  // whenever that side has the chat open
-  clientLastSeenAt?: number;
-  adminLastSeenAt?: number;
-
-  // denormalized "last message" preview, updated every time a chat
-  // message is sent — powers the site-wide notification toast without
-  // needing a listener on every request's messages subcollection
-  lastMessageAt?: number;
-  lastMessageText?: string;
-  lastMessageSenderRole?: "admin" | "client";
-};
-
-// A single chat message exchanged inside a request's chat thread
-// (stored in the pixora_requests/{requestId}/messages subcollection)
-export type ChatMessage = {
-  id: string;
-  requestId: string;
-  clientId: string; // the request's client — kept on every message so
-                     // Firestore rules can check access without a lookup
-  senderId: string;
-  senderRole: "admin" | "client";
-  senderEmail: string;
-  text?: string;
-  imageUrl?: string;
-  createdAt?: number;
 };
