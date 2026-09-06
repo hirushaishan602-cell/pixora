@@ -1,0 +1,70 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ============================================================
+    // PIXORA rules — add these match blocks INSIDE your existing
+    // Creativo firestore.rules file, alongside your current rules.
+    // Do NOT replace your Creativo rules with this whole file —
+    // these collections are namespaced with a "pixora_" prefix
+    // specifically so they don't touch Creativo's own data.
+    // ============================================================
+
+    function pixoraRole() {
+      return get(/databases/$(database)/documents/pixora_users/$(request.auth.uid)).data.role;
+    }
+
+    function isPixoraAdmin() {
+      return request.auth != null &&
+        (pixoraRole() == 'admin' || pixoraRole() == 'mainAdmin');
+    }
+
+    function isPixoraMainAdmin() {
+      return request.auth != null && pixoraRole() == 'mainAdmin';
+    }
+
+    match /pixora_siteConfig/{docId} {
+      allow read: if true;
+      allow write: if isPixoraAdmin();
+    }
+
+    match /pixora_projects/{projectId} {
+      allow read: if true;
+      allow write: if isPixoraAdmin();
+    }
+
+    match /pixora_users/{uid} {
+      allow read: if request.auth != null && (request.auth.uid == uid || isPixoraAdmin());
+      allow update: if isPixoraMainAdmin();
+      // clients can create their own profile doc on signup, but only as role "user"
+      allow create: if request.auth != null && request.auth.uid == uid &&
+        request.resource.data.role == 'user';
+      allow delete: if false;
+    }
+
+    match /pixora_requests/{requestId} {
+      // clients can read only their own requests, admins can read everything
+      allow read: if request.auth != null &&
+        (resource.data.clientId == request.auth.uid || isPixoraAdmin());
+
+      // clients can create a request for themselves, always starting as "pending"
+      allow create: if request.auth != null &&
+        request.resource.data.clientId == request.auth.uid &&
+        request.resource.data.status == 'pending';
+
+      // admins can update anything (approve / complete);
+      // the owning client may only add their rating + comment once the project is completed
+      allow update: if isPixoraAdmin() ||
+        (request.auth != null &&
+          resource.data.clientId == request.auth.uid &&
+          resource.data.status == 'completed' &&
+          request.resource.data.category == resource.data.category &&
+          request.resource.data.description == resource.data.description &&
+          request.resource.data.status == resource.data.status &&
+          request.resource.data.deliverableUrl == resource.data.deliverableUrl);
+
+      allow delete: if isPixoraAdmin();
+    }
+  }
+}
