@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
-import { adminDb } from "@/lib/firebaseAdmin";
+import { getAdminDb } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
 
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Profile photo URL is too long." }, { status: 400 });
     }
 
-    const ref = adminDb.collection("pixora_testimonials").doc();
+    const ref = getAdminDb().collection("pixora_testimonials").doc();
     await ref.set({
       rating,
       comment,
