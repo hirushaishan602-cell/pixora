@@ -152,28 +152,38 @@ export async function createPublicRating(data: {
   if (!Number.isInteger(data.rating) || data.rating < 1 || data.rating > 5) {
     throw new Error("Rating must be between 1 and 5.");
   }
+
   const comment = data.comment.trim();
   const clientName = data.clientName?.trim() || "";
   const clientEmail = data.clientEmail?.trim() || "";
+  const avatarUrl = data.avatarUrl?.trim() || "";
+
+  if (!comment) throw new Error("Please tell us about your experience.");
   if (comment.length > 500 || clientName.length > 80 || clientEmail.length > 254) {
     throw new Error("Your rating contains too much text.");
   }
   if (clientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)) {
     throw new Error("Please enter a valid email address.");
   }
-  await addDoc(collection(db, "pixora_testimonials"), {
-    rating: data.rating,
-    comment,
-    ...(clientName ? { clientName } : {}),
-    ...(clientEmail ? { clientEmail: maskPublicEmail(clientEmail) } : {}),
-    ...(data.avatarUrl ? { avatarUrl: data.avatarUrl } : {}),
-    category: "Client Feedback",
-    featured: false,
-    source: "public",
-    status: "pending",
-    createdAt: serverTimestamp(),
-    ratedAt: serverTimestamp(),
+  if (avatarUrl && avatarUrl.length > 2000) {
+    throw new Error("Profile photo URL is too long.");
+  }
+
+  const response = await fetch("/api/ratings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      rating: data.rating,
+      comment,
+      clientName: clientName || undefined,
+      clientEmail: clientEmail || undefined,
+      avatarUrl: avatarUrl || undefined,
+    }),
   });
+
+  let payload: { error?: string } = {};
+  try { payload = await response.json(); } catch { /* non-JSON response */ }
+  if (!response.ok) throw new Error(payload.error || "Could not save your rating.");
 }
 
 export async function deleteRequest(id: string): Promise<void> {
