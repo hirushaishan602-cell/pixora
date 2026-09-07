@@ -4,12 +4,13 @@ import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: "AIzaSyCLDCkyTs17_DTdvwHEjnbPbDrb_alUoac",
+  authDomain: "pixora-ad6a8.firebaseapp.com",
+  databaseURL: "https://pixora-ad6a8-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "pixora-ad6a8",
+  storageBucket: "pixora-ad6a8.firebasestorage.app",
+  messagingSenderId: "612800173987",
+  appId: "1:612800173987:web:4292963f3c3825fe86ac16",
 };
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
