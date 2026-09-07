@@ -2,16 +2,13 @@
 
 import { useState } from "react";
 import RatingStars from "./RatingStars";
-import { rateRequest, createPublicRating, uploadRatingAvatar } from "@/lib/requests";
-import { useAuth } from "@/context/AuthContext";
+import { rateRequest, uploadRatingAvatar } from "@/lib/requests";
 import { ProjectRequest } from "@/lib/types";
 
-export default function ProjectRatingBox({ request, onRated }: { request?: ProjectRequest; onRated: () => void }) {
+export default function ProjectRatingBox({ request, onRated }: { request: ProjectRequest; onRated: () => void }) {
   const [rating, setRating] = useState(0);
-  const { user } = useAuth();
-  const [clientName, setClientName] = useState(request?.clientName ?? "");
-  const [clientEmail, setClientEmail] = useState(user?.email ?? request?.clientEmail ?? "");
-  const [avatarUrl, setAvatarUrl] = useState(request?.avatarUrl ?? "");
+  const [clientName, setClientName] = useState(request.clientName ?? "");
+  const [avatarUrl, setAvatarUrl] = useState(request.avatarUrl ?? "");
   const [comment, setComment] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -36,17 +33,7 @@ export default function ProjectRatingBox({ request, onRated }: { request?: Proje
     setError("");
     setSaving(true);
     try {
-      if (request) {
-        await rateRequest(request.id, { rating, comment: comment.trim(), clientName: clientName.trim(), avatarUrl });
-      } else {
-        await createPublicRating({
-          rating,
-          comment: comment.trim(),
-          clientName: clientName.trim(),
-          clientEmail: clientEmail.trim(),
-          avatarUrl,
-        });
-      }
+      await rateRequest(request.id, { rating, comment: comment.trim(), clientName: clientName.trim(), avatarUrl });
       onRated();
     } catch {
       setError("Could not save your rating. Please try again.");
@@ -60,7 +47,7 @@ export default function ProjectRatingBox({ request, onRated }: { request?: Proje
           {avatarUrl ? <img src={avatarUrl} alt="Your profile" /> : <span>{clientName.trim().slice(0, 1).toUpperCase() || "C"}</span>}
         </div>
         <div>
-          <p className="project-rating-title">{request ? "How was your finished project?" : "How was your PIXORA experience?"}</p>
+          <p className="project-rating-title">How was your finished project?</p>
           <span className="rating-photo-hint">Add a profile photo if you'd like.</span>
         </div>
       </div>
@@ -69,13 +56,6 @@ export default function ProjectRatingBox({ request, onRated }: { request?: Proje
         <span>Your name <small>(optional)</small></span>
         <input type="text" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="Enter your name" maxLength={80} autoComplete="name" />
       </label>
-
-      {!request && (
-        <label className="rating-name-field">
-          <span>Email <small>(optional · kept private)</small></span>
-          <input type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} placeholder="yourname@gmail.com" maxLength={254} autoComplete="email" />
-        </label>
-      )}
 
       <label className="rating-photo-upload">
         <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => handleAvatar(e.target.files?.[0])} />
