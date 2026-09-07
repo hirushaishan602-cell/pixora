@@ -36,9 +36,21 @@ export default function Navbar() {
   // close the mobile menu on route change / resize back to desktop
   useEffect(() => {
     if (!menuOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    document.documentElement.style.overflowX = "hidden";
+
+    const handleResize = () => {
+      if (window.innerWidth > 992) setMenuOpen(false);
+    };
+
+    window.addEventListener("resize", handleResize);
+
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow = previousOverflow;
+      document.documentElement.style.overflowX = "";
+      window.removeEventListener("resize", handleResize);
     };
   }, [menuOpen]);
 
