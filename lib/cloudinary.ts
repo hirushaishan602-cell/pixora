@@ -1,15 +1,11 @@
-// Client-side Cloudinary unsigned uploads. These values are public configuration,
-// not secrets. For maximum abuse resistance, use a signed server-side upload flow.
-const CLOUDINARY_CLOUD_NAME = process.env."drf1c9d3o";
-const CLOUDINARY_UPLOAD_PRESET = process.env."pixora";
+// Every image on the site (project portfolio images, client request photos,
+// chat attachments, hero artwork) is uploaded straight to Cloudinary from
+// the browser using an unsigned upload preset — no Firebase Storage needed.
+
+const CLOUDINARY_CLOUD_NAME = "drf1c9d3o";
+const CLOUDINARY_UPLOAD_PRESET = "pixora";
 
 export async function uploadToCloudinary(file: File, folder: string): Promise<string> {
-  if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
-    throw new Error("Cloudinary upload configuration is missing.");
-  }
-  if (!file.type.startsWith("image/")) throw new Error("Only image files are allowed.");
-  if (file.size > 5 * 1024 * 1024) throw new Error("Image must be 5 MB or smaller.");
-
   const formData = new FormData();
   formData.append("file", file);
   formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
@@ -20,8 +16,10 @@ export async function uploadToCloudinary(file: File, folder: string): Promise<st
     { method: "POST", body: formData }
   );
 
-  if (!res.ok) throw new Error("Cloudinary upload failed.");
+  if (!res.ok) {
+    throw new Error("Cloudinary upload failed. Check the cloud name / upload preset.");
+  }
+
   const data = await res.json();
-  if (typeof data.secure_url !== "string") throw new Error("Invalid Cloudinary response.");
-  return data.secure_url;
+  return data.secure_url as string;
 }
