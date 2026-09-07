@@ -31,22 +31,39 @@ export function SiteDataProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    try {
-      const [cfg, projs, reviews] = await Promise.all([
-        getSiteConfig(),
-        getProjects(),
-        listFeaturedTestimonials(),
-      ]);
-      setConfig(cfg);
-      setProjects(projs);
-      setTestimonials(reviews);
-    } catch (err) {
-      // keep defaults if Firebase isn't configured yet — but log so it's
-      // easy to spot in devtools if projects/config aren't showing up
-      console.error("Pixora: failed to load site data from Firebase", err);
-    } finally {
-      setLoading(false);
+    // Keep each public Firebase collection independent. A permission/index
+    // problem in testimonials must never prevent projects or site settings
+    // from rendering. This is especially important because public ratings
+    // are intentionally stored separately from private requests.
+    setLoading(true);
+
+    const [cfgResult, projectsResult, testimonialsResult] = await Promise.allSettled([
+      getSiteConfig(),
+      getProjects(),
+      listFeaturedTestimonials(),
+    ]);
+
+    if (cfgResult.status === "fulfilled") {
+      setConfig(cfgResult.value);
+    } else {
+      console.error("Pixora: failed to load site config", cfgResult.reason);
     }
+
+    if (projectsResult.status === "fulfilled") {
+      setProjects(projectsResult.value);
+    } else {
+      console.error("Pixora: failed to load projects from Firebase", projectsResult.reason);
+    }
+
+    if (testimonialsResult.status === "fulfilled") {
+      setTestimonials(testimonialsResult.value);
+    } else {
+      // Testimonials are optional public content. Never blank the rest of
+      // the site when this collection is unavailable.
+      console.error("Pixora: failed to load public testimonials", testimonialsResult.reason);
+    }
+
+    setLoading(false);
   };
 
   useEffect(() => {

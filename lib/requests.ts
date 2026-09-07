@@ -108,36 +108,30 @@ export async function rateRequest(
   });
 }
 
-export async function ratePublicReview(data: {
+// Public ratings are intentionally stored separately from private project
+// requests so a visitor coming from WhatsApp can rate without creating a
+// client account or gaining access to private request documents.
+export async function createPublicRating(data: {
   rating: number;
   comment: string;
   clientName?: string;
   clientEmail?: string;
   avatarUrl?: string;
 }): Promise<void> {
-  const rating = Math.round(data.rating);
-  const comment = data.comment.trim();
-  const clientName = data.clientName?.trim() || "";
-  const clientEmail = data.clientEmail?.trim().toLowerCase() || "";
-
-  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+  if (!Number.isInteger(data.rating) || data.rating < 1 || data.rating > 5) {
     throw new Error("Rating must be between 1 and 5.");
   }
-  if (!comment || comment.length > 500) {
-    throw new Error("Review must be between 1 and 500 characters.");
+  const comment = data.comment.trim();
+  const clientName = data.clientName?.trim() || "";
+  const clientEmail = data.clientEmail?.trim() || "";
+  if (comment.length > 500 || clientName.length > 80 || clientEmail.length > 254) {
+    throw new Error("Your rating contains too much text.");
   }
-  if (clientName.length > 80) throw new Error("Name is too long.");
-  if (clientEmail.length > 254 || (clientEmail && !/^\S+@\S+\.\S+$/.test(clientEmail))) {
+  if (clientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)) {
     throw new Error("Please enter a valid email address.");
   }
-  if (data.avatarUrl && data.avatarUrl.length > 2000) {
-    throw new Error("Profile photo URL is too long.");
-  }
-
-  // Public ratings are deliberately stored in their own collection.
-  // This means WhatsApp/public visitors never need access to private requests.
   await addDoc(collection(db, "pixora_testimonials"), {
-    rating,
+    rating: data.rating,
     comment,
     ...(clientName ? { clientName } : {}),
     ...(clientEmail ? { clientEmail } : {}),
@@ -165,39 +159,41 @@ export async function setRequestFeatured(
 // requests an admin has explicitly marked as featured are returned, so
 // nothing shows up until an admin picks it.
 export async function listFeaturedTestimonials(): Promise<ProjectRequest[]> {
-  // The homepage is public, so it must NOT query pixora_requests here:
-  // those documents are private to the client/admin. Querying them from a
-  // signed-out visitor causes PERMISSION_DENIED and hides every testimonial.
-  const publicSnap = await getDocs(
-    query(collection(db, "pixora_testimonials"), where("featured", "==", true))
-  );
+  // IMPORTANT: this function is used by the public website. Never read
+  // pixora_requests here because those documents are private to clients/admins.
+  // Reading them from a public page causes PERMISSION_DENIED and makes a
+  // successful Rate Us submission look like it failed when onRated() refreshes.
+  try {
+    const publicSnap = await getDocs(
+      query(collection(db, "pixora_testimonials"), where("featured", "==", true))
+    );
 
-  const publicItems = publicSnap.docs.map((d) => {
-    const data = d.data();
-    const toMillis = (value: unknown) =>
-      typeof (value as { toMillis?: unknown })?.toMillis === "function"
-        ? (value as { toMillis: () => number }).toMillis()
-        : undefined;
+    const publicItems = publicSnap.docs.map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        clientId: "public",
+        clientEmail: typeof data.clientEmail === "string" ? data.clientEmail : "",
+        clientName: typeof data.clientName === "string" ? data.clientName : undefined,
+        avatarUrl: typeof data.avatarUrl === "string" ? data.avatarUrl : undefined,
+        category: typeof data.category === "string" ? data.category : "Client Feedback",
+        description: "",
+        imageUrls: [],
+        status: "completed" as const,
+        rating: typeof data.rating === "number" ? data.rating : 0,
+        comment: typeof data.comment === "string" ? data.comment : "",
+        ratedAt: typeof data.ratedAt?.toMillis === "function" ? data.ratedAt.toMillis() : undefined,
+        featured: true,
+      };
+    });
 
-    return {
-      id: d.id,
-      clientId: "public",
-      clientEmail: typeof data.clientEmail === "string" ? data.clientEmail : "",
-      clientName: typeof data.clientName === "string" ? data.clientName : undefined,
-      avatarUrl: typeof data.avatarUrl === "string" ? data.avatarUrl : undefined,
-      category: typeof data.category === "string" ? data.category : "Client Feedback",
-      description: "",
-      imageUrls: [],
-      status: "completed" as const,
-      rating: typeof data.rating === "number" ? data.rating : 0,
-      comment: typeof data.comment === "string" ? data.comment : "",
-      createdAt: toMillis(data.createdAt),
-      ratedAt: toMillis(data.ratedAt) ?? toMillis(data.createdAt),
-      featured: data.featured === true,
-    };
-  });
-
-  return publicItems.sort((a, b) => (b.ratedAt ?? b.createdAt ?? 0) - (a.ratedAt ?? a.createdAt ?? 0));
+    return publicItems.sort((a, b) => (b.ratedAt ?? 0) - (a.ratedAt ?? 0));
+  } catch (error) {
+    // Public testimonials are optional. A Firebase rules/index problem here
+    // must not break portfolio, hero, settings, or other Firebase-backed UI.
+    console.error("Pixora: public testimonials unavailable", error);
+    return [];
+  }
 }
 
 // Live list of every request that could currently have an active chat —

@@ -5,7 +5,6 @@ import {
   deleteDoc,
   doc,
   getDocs,
-  orderBy,
   query,
   serverTimestamp,
 } from "firebase/firestore";
@@ -16,9 +15,19 @@ import { uploadToCloudinary } from "./cloudinary";
 const PROJECTS_COL = collection(db, "pixora_projects");
 
 export async function getProjects(): Promise<Project[]> {
-  const q = query(PROJECTS_COL, orderBy("order", "asc"));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Project, "id">) }));
+  // Do not require every legacy project document to have an `order` field.
+  // Firestore orderBy() silently excludes documents missing that field, which
+  // can make an existing portfolio suddenly appear empty after a data update.
+  const snap = await getDocs(PROJECTS_COL);
+  const items = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Project, "id">) }));
+  return items.sort((a, b) => {
+    const orderA = typeof a.order === "number" ? a.order : Number.MAX_SAFE_INTEGER;
+    const orderB = typeof b.order === "number" ? b.order : Number.MAX_SAFE_INTEGER;
+    if (orderA !== orderB) return orderA - orderB;
+    const createdA = typeof a.createdAt === "number" ? a.createdAt : 0;
+    const createdB = typeof b.createdAt === "number" ? b.createdAt : 0;
+    return createdB - createdA;
+  });
 }
 
 export async function uploadProjectImage(file: File): Promise<string> {

@@ -1,11 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import RateUsBox from "./RateUsBox";
+import { useAuth } from "@/context/AuthContext";
+import { listRequestsForClient } from "@/lib/requests";
+import { ProjectRequest } from "@/lib/types";
+import ProjectRatingBox from "./ProjectRatingBox";
 
 export const RATE_US_EVENT = "pixora:open-rate-us";
 
 export default function RatingPopup() {
+  const { user, role, loading } = useAuth();
+  const [pending, setPending] = useState<ProjectRequest | null>(null);
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -19,10 +24,26 @@ export default function RatingPopup() {
     return () => window.removeEventListener(RATE_US_EVENT, openRateUs);
   }, []);
 
+  useEffect(() => {
+    if (!open) return;
+    setPending(null);
+    setMessage("");
+    if (loading || !user || role === "admin" || role === "mainAdmin") return;
+
+    listRequestsForClient(user.uid).then((requests) => {
+      const unrated = requests.find((r) => r.status === "completed" && !r.rating);
+      setPending(unrated ?? null);
+    }).catch(() => {
+      // Public rating still works even if a signed-in client's private
+      // request list cannot be loaded.
+    });
+  }, [open, loading, user, role]);
+
   if (!open) return null;
 
   const close = () => {
     setOpen(false);
+    setPending(null);
     setMessage("");
   };
 
@@ -43,11 +64,11 @@ export default function RatingPopup() {
         <h3 id="rate-us-title">How was your PIXORA experience?</h3>
         <p>Choose your rating, add your name if you want, and tell us what you think.</p>
 
-        <RateUsBox onRated={() => {
-          setMessage("Thank you for rating PIXORA!");
-          setTimeout(close, 700);
-        }} />
-        {message && <p className="rating-success-message">{message}</p>}
+        {pending ? (
+          <ProjectRatingBox request={pending} onRated={close} />
+        ) : (
+          <ProjectRatingBox onRated={close} />
+        )}
       </div>
     </div>
   );
