@@ -30,7 +30,11 @@ export default function ProjectRatingBox({
     setError("");
     setSaving(true);
     try {
-      await rateRequest(request.id, { rating, comment, clientName: clientName.trim() });
+      await rateRequest(request.id, {
+        rating,
+        comment: comment.trim(),
+        clientName: clientName.trim(),
+      });
       onRated();
     } catch {
       setError("Could not save your rating. Please try again.");

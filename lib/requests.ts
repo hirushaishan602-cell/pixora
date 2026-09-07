@@ -87,12 +87,12 @@ export async function completeRequest(
 
 export async function rateRequest(
   id: string,
-  data: { rating: number; comment: string; clientName: string }
+  data: { rating: number; comment: string; clientName?: string }
 ): Promise<void> {
   await updateDoc(doc(db, "pixora_requests", id), {
     rating: data.rating,
     comment: data.comment,
-    clientName: data.clientName,
+    ...(data.clientName?.trim() ? { clientName: data.clientName.trim() } : {}),
     ratedAt: serverTimestamp(),
   });
 }
