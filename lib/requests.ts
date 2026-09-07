@@ -119,6 +119,29 @@ function maskPublicEmail(email: string): string {
   return `${visible}${"*".repeat(Math.max(4, local.length - visible.length))}@${domain}`;
 }
 
+/**
+ * Public Rate Us compatibility API.
+ * Kept as a named export because the RateUsBox component uses this name.
+ * It delegates to the same validated public-rating writer, so there is only
+ * one save path and the existing portfolio/request flows are untouched.
+ */
+export async function ratePublicReview(data: {
+  rating: number;
+  comment: string;
+  clientName?: string;
+  clientEmail?: string;
+  email?: string;
+  avatarUrl?: string;
+}): Promise<void> {
+  return createPublicRating({
+    rating: data.rating,
+    comment: data.comment,
+    clientName: data.clientName,
+    clientEmail: data.clientEmail ?? data.email,
+    avatarUrl: data.avatarUrl,
+  });
+}
+
 export async function createPublicRating(data: {
   rating: number;
   comment: string;
