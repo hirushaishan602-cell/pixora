@@ -4,41 +4,55 @@ import { getAdminDb } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
 
-function maskPublicEmail(email: string): string {
-  if (!email || !email.includes("@")) return "";
-  const [local, domain] = email.split("@", 2);
-  const visible = local.length <= 2 ? local.slice(0, 1) : local.slice(0, 2);
-  return `${visible}${"*".repeat(Math.max(4, local.length - visible.length))}@${domain}`;
+function clean(value: unknown, max: number): string {
+  return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
 
-export async function POST(request: Request) {
+export async function GET() {
   try {
-    const body = await request.json();
+    const snap = await getAdminDb()
+      .collection("pixora_testimonials")
+      .where("featured", "==", true)
+      .get();
+
+    const ratings = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    return NextResponse.json({ ratings });
+  } catch (error) {
+    console.error("Public ratings GET failed:", error);
+    return NextResponse.json({ ratings: [], error: "Unable to load ratings" }, { status: 200 });
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
     const rating = Number(body?.rating);
-    const comment = typeof body?.comment === "string" ? body.comment.trim() : "";
-    const clientName = typeof body?.clientName === "string" ? body.clientName.trim() : "";
-    const clientEmail = typeof body?.clientEmail === "string" ? body.clientEmail.trim() : "";
-    const avatarUrl = typeof body?.avatarUrl === "string" ? body.avatarUrl.trim() : "";
+    const comment = clean(body?.comment, 500);
+    const clientName = clean(body?.clientName, 80);
+    const clientEmail = clean(body?.clientEmail ?? body?.email, 254);
+    const avatarUrl = clean(body?.avatarUrl, 2000);
 
     if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
       return NextResponse.json({ error: "Rating must be between 1 and 5." }, { status: 400 });
     }
-    if (!comment || comment.length > 500 || clientName.length > 80 || clientEmail.length > 254) {
-      return NextResponse.json({ error: "Please check the rating details." }, { status: 400 });
+    if (!comment) {
+      return NextResponse.json({ error: "Comment is required." }, { status: 400 });
     }
     if (clientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)) {
-      return NextResponse.json({ error: "Please enter a valid email address." }, { status: 400 });
-    }
-    if (avatarUrl.length > 2000) {
-      return NextResponse.json({ error: "Profile photo URL is too long." }, { status: 400 });
+      return NextResponse.json({ error: "Invalid email address." }, { status: 400 });
     }
 
-    const ref = getAdminDb().collection("pixora_testimonials").doc();
-    await ref.set({
+    const local = clientEmail.split("@")[0] ?? "";
+    const domain = clientEmail.split("@")[1] ?? "";
+    const maskedEmail = clientEmail
+      ? `${(local.slice(0, 2) || local.slice(0, 1))}${"*".repeat(Math.max(4, local.length - 2))}@${domain}`
+      : "";
+
+    const ref = await getAdminDb().collection("pixora_testimonials").add({
       rating,
       comment,
       ...(clientName ? { clientName } : {}),
-      ...(clientEmail ? { clientEmail: maskPublicEmail(clientEmail) } : {}),
+      ...(maskedEmail ? { clientEmail: maskedEmail } : {}),
       ...(avatarUrl ? { avatarUrl } : {}),
       category: "Client Feedback",
       featured: false,
@@ -48,9 +62,9 @@ export async function POST(request: Request) {
       ratedAt: FieldValue.serverTimestamp(),
     });
 
-    return NextResponse.json({ ok: true }, { status: 201 });
+    return NextResponse.json({ id: ref.id, saved: true }, { status: 201 });
   } catch (error) {
-    console.error("Pixora rating API error", error);
-    return NextResponse.json({ error: "Could not save your rating. Please try again." }, { status: 500 });
+    console.error("Public rating POST failed:", error);
+    return NextResponse.json({ error: "Unable to save rating." }, { status: 500 });
   }
 }

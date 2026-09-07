@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminAuth, adminDb } from "@/lib/firebaseAdmin";
+import { getAdminAuth, getAdminDb } from "@/lib/firebaseAdmin";
 import { FieldValue } from "firebase-admin/firestore";
 
 export async function POST(req: NextRequest) {
@@ -11,8 +11,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const decoded = await adminAuth.verifyIdToken(idToken);
-    const requesterDoc = await adminDb.collection("pixora_users").doc(decoded.uid).get();
+    const decoded = await getAdminAuth().verifyIdToken(idToken);
+    const requesterDoc = await getAdminDb().collection("pixora_users").doc(decoded.uid).get();
     const requesterRole = requesterDoc.exists ? requesterDoc.data()?.role : null;
 
     if (requesterRole !== "mainAdmin") {
@@ -34,9 +34,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const newUser = await adminAuth.createUser({ email, password });
+    const newUser = await getAdminAuth().createUser({ email, password });
 
-    await adminDb.collection("pixora_users").doc(newUser.uid).set({
+    await getAdminDb().collection("pixora_users").doc(newUser.uid).set({
       email,
       role: "admin",
       createdAt: FieldValue.serverTimestamp(),
