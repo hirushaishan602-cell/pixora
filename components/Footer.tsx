@@ -39,6 +39,8 @@ export default function Footer() {
 
           <p>{config.tagline}</p>
 
+          <a href="#testimonials" className="footer-rate-us">★ Rate Us</a>
+
           {socials.length > 0 && (
             <div className="footer-socials">
               {socials.map((s) => (

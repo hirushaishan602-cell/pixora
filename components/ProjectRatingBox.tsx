@@ -13,11 +13,16 @@ export default function ProjectRatingBox({
   onRated: () => void;
 }) {
   const [rating, setRating] = useState(0);
+  const [clientName, setClientName] = useState(request.clientName ?? "");
   const [comment, setComment] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   const handleSubmit = async () => {
+    if (!clientName.trim()) {
+      setError("Please enter your name.");
+      return;
+    }
     if (rating === 0) {
       setError("Please select a star rating.");
       return;
@@ -25,7 +30,7 @@ export default function ProjectRatingBox({
     setError("");
     setSaving(true);
     try {
-      await rateRequest(request.id, { rating, comment });
+      await rateRequest(request.id, { rating, comment, clientName: clientName.trim() });
       onRated();
     } catch {
       setError("Could not save your rating. Please try again.");
@@ -37,6 +42,17 @@ export default function ProjectRatingBox({
   return (
     <div className="project-rating-box">
       <p className="project-rating-title">How was your finished project?</p>
+      <label className="rating-name-field">
+        <span>Your name</span>
+        <input
+          type="text"
+          value={clientName}
+          onChange={(e) => setClientName(e.target.value)}
+          placeholder="Enter your name"
+          maxLength={80}
+          autoComplete="name"
+        />
+      </label>
       <RatingStars value={rating} onChange={setRating} />
       <textarea
         rows={2}
