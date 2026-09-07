@@ -48,8 +48,9 @@ export default function ProjectRatingBox({ request, onRated }: { request?: Proje
         });
       }
       onRated();
-    } catch {
-      setError("Could not save your rating. Please try again.");
+    } catch (e) {
+      console.error("Pixora rating save failed", e);
+      setError(e instanceof Error ? e.message : "Could not save your rating. Please try again.");
     } finally { setSaving(false); }
   };
 

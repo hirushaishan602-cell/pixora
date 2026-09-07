@@ -50,7 +50,7 @@ service cloud.firestore {
       allow read: if true;
       allow create: if !isPixoraAdmin() &&
         request.resource.data.keys().hasOnly([
-          'rating', 'comment', 'clientName', 'clientEmail', 'avatarUrl',
+          'rating', 'comment', 'clientName', 'clientEmailMasked', 'avatarUrl',
           'category', 'featured', 'source', 'createdAt', 'ratedAt'
         ]) &&
         request.resource.data.rating is int &&
@@ -61,12 +61,12 @@ service cloud.firestore {
         request.resource.data.category == 'Client Feedback' &&
         request.resource.data.featured == true &&
         request.resource.data.source == 'public' &&
-        request.resource.data.createdAt == request.time &&
-        request.resource.data.ratedAt == request.time &&
+        request.resource.data.createdAt is timestamp &&
+        request.resource.data.ratedAt is timestamp &&
         (!request.resource.data.keys().hasAny(['clientName']) ||
           (request.resource.data.clientName is string && request.resource.data.clientName.size() <= 80)) &&
-        (!request.resource.data.keys().hasAny(['clientEmail']) ||
-          (request.resource.data.clientEmail is string && request.resource.data.clientEmail.size() <= 254)) &&
+        (!request.resource.data.keys().hasAny(['clientEmailMasked']) ||
+          (request.resource.data.clientEmailMasked is string && request.resource.data.clientEmailMasked.size() <= 254)) &&
         (!request.resource.data.keys().hasAny(['avatarUrl']) ||
           (request.resource.data.avatarUrl is string && request.resource.data.avatarUrl.size() <= 2000));
       allow update, delete: if isPixoraAdmin();
