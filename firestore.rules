@@ -47,10 +47,15 @@ service cloud.firestore {
     // Visitors can create a single review document with tightly constrained
     // fields, but cannot read, edit, or delete other visitors' submissions.
     match /pixora_testimonials/{testimonialId} {
+      // Public testimonials are intentionally public to read and public to
+      // submit. Do NOT call an auth-dependent admin helper here: a visitor
+      // submitting without signing in has request.auth == null, and an auth
+      // lookup inside that helper can turn the rule evaluation into a
+      // permission-denied result.
       allow read: if true;
-      allow create: if !isPixoraAdmin() &&
+      allow create: if
         request.resource.data.keys().hasOnly([
-          'rating', 'comment', 'clientName', 'clientEmailMasked', 'avatarUrl',
+          'rating', 'comment', 'clientName', 'clientEmail', 'avatarUrl',
           'category', 'featured', 'source', 'createdAt', 'ratedAt'
         ]) &&
         request.resource.data.rating is int &&
@@ -65,8 +70,8 @@ service cloud.firestore {
         request.resource.data.ratedAt is timestamp &&
         (!request.resource.data.keys().hasAny(['clientName']) ||
           (request.resource.data.clientName is string && request.resource.data.clientName.size() <= 80)) &&
-        (!request.resource.data.keys().hasAny(['clientEmailMasked']) ||
-          (request.resource.data.clientEmailMasked is string && request.resource.data.clientEmailMasked.size() <= 254)) &&
+        (!request.resource.data.keys().hasAny(['clientEmail']) ||
+          (request.resource.data.clientEmail is string && request.resource.data.clientEmail.size() <= 254)) &&
         (!request.resource.data.keys().hasAny(['avatarUrl']) ||
           (request.resource.data.avatarUrl is string && request.resource.data.avatarUrl.size() <= 2000));
       allow update, delete: if isPixoraAdmin();

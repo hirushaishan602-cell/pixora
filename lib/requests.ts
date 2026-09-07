@@ -111,14 +111,6 @@ export async function rateRequest(
 // Public ratings are intentionally stored separately from private project
 // requests so a visitor coming from WhatsApp can rate without creating a
 // client account or gaining access to private request documents.
-
-function maskPublicEmail(email: string): string {
-  const [local, domain] = email.split("@");
-  if (!local || !domain) return "";
-  const visible = local.length <= 2 ? local.slice(0, 1) : local.slice(0, 2);
-  return `${visible}${"*".repeat(Math.max(3, local.length - visible.length))}@${domain}`;
-}
-
 export async function createPublicRating(data: {
   rating: number;
   comment: string;
@@ -138,12 +130,22 @@ export async function createPublicRating(data: {
   if (clientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)) {
     throw new Error("Please enter a valid email address.");
   }
-  const maskedEmail = clientEmail ? maskPublicEmail(clientEmail) : "";
+
+  // Never publish a visitor's full email address. Keep only a masked form so
+  // the public testimonial can still identify the client without exposing PII.
+  const publicEmail = clientEmail
+    ? (() => {
+        const [local, domain] = clientEmail.split("@");
+        const visible = local.length <= 2 ? local.slice(0, 1) : local.slice(0, 2);
+        return `${visible}${"*".repeat(Math.max(3, local.length - visible.length))}@${domain}`;
+      })()
+    : "";
+
   await addDoc(collection(db, "pixora_testimonials"), {
     rating: data.rating,
     comment,
     ...(clientName ? { clientName } : {}),
-    ...(maskedEmail ? { clientEmailMasked: maskedEmail } : {}),
+    ...(publicEmail ? { clientEmail: publicEmail } : {}),
     ...(data.avatarUrl ? { avatarUrl: data.avatarUrl } : {}),
     category: "Client Feedback",
     featured: true,
@@ -197,7 +199,7 @@ export async function listFeaturedTestimonials(): Promise<ProjectRequest[]> {
       return {
         id: d.id,
         clientId: "public",
-        clientEmail: typeof data.clientEmailMasked === "string" ? data.clientEmailMasked : "",
+        clientEmail: typeof data.clientEmail === "string" ? data.clientEmail : "",
         clientName: typeof data.clientName === "string" ? data.clientName : undefined,
         avatarUrl: typeof data.avatarUrl === "string" ? data.avatarUrl : undefined,
         category: typeof data.category === "string" ? data.category : "Client Feedback",
