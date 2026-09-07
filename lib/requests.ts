@@ -191,8 +191,12 @@ export async function setRequestFeatured(
 // requests an admin has explicitly marked as featured are returned, so
 // nothing shows up until an admin picks it.
 export async function listPublicRatingsForAdmin(): Promise<ProjectRequest[]> {
-  const snap = await getDocs(collection(db, "pixora_testimonials"));
-  return snap.docs.map((d) => {
+  try {
+    // Do not use an orderBy here. Reading the collection and sorting the
+    // small moderation list client-side avoids requiring a Firestore index
+    // and keeps the admin panel from getting stuck if an index is missing.
+    const snap = await getDocs(collection(db, "pixora_testimonials"));
+    return snap.docs.map((d) => {
     const data = d.data();
     return {
       id: d.id,
@@ -209,7 +213,14 @@ export async function listPublicRatingsForAdmin(): Promise<ProjectRequest[]> {
       ratedAt: typeof data.ratedAt?.toMillis === "function" ? data.ratedAt.toMillis() : undefined,
       featured: data.featured === true,
     } as ProjectRequest;
-  }).sort((a, b) => (b.ratedAt ?? 0) - (a.ratedAt ?? 0));
+    }).sort((a, b) => (b.ratedAt ?? 0) - (a.ratedAt ?? 0));
+  } catch (error) {
+    // Ratings are optional admin content. Return an empty list instead of
+    // rejecting the whole admin page when Firestore is temporarily
+    // unavailable or the collection rules/indexes are not ready.
+    console.error("Pixora admin: public ratings unavailable", error);
+    return [];
+  }
 }
 
 export async function approvePublicRating(id: string): Promise<void> {

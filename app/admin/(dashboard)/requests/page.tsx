@@ -101,9 +101,30 @@ function AdminRequestsInner() {
 
   const load = async () => {
     setLoading(true);
-    const [requestData, ratingData] = await Promise.all([listAllRequests(), listPublicRatingsForAdmin()]);
-    setRequests(requestData);
-    setPublicRatings(ratingData);
+    setRatingsLoading(true);
+
+    // Keep the private request list and the public rating moderation list
+    // completely independent. A Firestore permission/index problem in one
+    // collection must never leave the other panel stuck on "Loading...".
+    const [requestResult, ratingResult] = await Promise.allSettled([
+      listAllRequests(),
+      listPublicRatingsForAdmin(),
+    ]);
+
+    if (requestResult.status === "fulfilled") {
+      setRequests(requestResult.value);
+    } else {
+      console.error("Pixora admin: failed to load project requests", requestResult.reason);
+      setRequests([]);
+    }
+
+    if (ratingResult.status === "fulfilled") {
+      setPublicRatings(ratingResult.value);
+    } else {
+      console.error("Pixora admin: failed to load public ratings", ratingResult.reason);
+      setPublicRatings([]);
+    }
+
     setRatingsLoading(false);
     setLoading(false);
   };
