@@ -41,7 +41,7 @@ export async function updateProject(
   await updateDoc(doc(db, "pixora_projects", id), data);
 }
 
-export async function deleteProject(id: string, _imageUrl?: string): Promise<void> {
+export async function deleteProject(id: string, _imageUrl: string = ""): Promise<void> {
   // Note: the Cloudinary image itself isn't deleted here — deleting a
   // Cloudinary asset requires a signed request (API secret), which can't
   // be done safely from the browser. Only the Firestore record is removed;
