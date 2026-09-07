@@ -43,6 +43,35 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Public testimonials are isolated from private project requests.
+    // Visitors can create a single review document with tightly constrained
+    // fields, but cannot read, edit, or delete other visitors' submissions.
+    match /pixora_testimonials/{testimonialId} {
+      allow read: if true;
+      allow create: if !isPixoraAdmin() &&
+        request.resource.data.keys().hasOnly([
+          'rating', 'comment', 'clientName', 'clientEmail', 'avatarUrl',
+          'category', 'featured', 'source', 'createdAt', 'ratedAt'
+        ]) &&
+        request.resource.data.rating is int &&
+        request.resource.data.rating >= 1 &&
+        request.resource.data.rating <= 5 &&
+        request.resource.data.comment is string &&
+        request.resource.data.comment.size() <= 500 &&
+        request.resource.data.category == 'Client Feedback' &&
+        request.resource.data.featured == true &&
+        request.resource.data.source == 'public' &&
+        request.resource.data.createdAt == request.time &&
+        request.resource.data.ratedAt == request.time &&
+        (!request.resource.data.keys().hasAny(['clientName']) ||
+          (request.resource.data.clientName is string && request.resource.data.clientName.size() <= 80)) &&
+        (!request.resource.data.keys().hasAny(['clientEmail']) ||
+          (request.resource.data.clientEmail is string && request.resource.data.clientEmail.size() <= 254)) &&
+        (!request.resource.data.keys().hasAny(['avatarUrl']) ||
+          (request.resource.data.avatarUrl is string && request.resource.data.avatarUrl.size() <= 2000));
+      allow update, delete: if isPixoraAdmin();
+    }
+
     match /pixora_requests/{requestId} {
       // clients can read only their own requests, admins can read everything
       allow read: if request.auth != null &&

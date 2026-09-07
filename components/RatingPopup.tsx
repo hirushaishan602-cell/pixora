@@ -25,16 +25,17 @@ export default function RatingPopup() {
   }, []);
 
   useEffect(() => {
-    if (!open || loading || !user || role === "admin" || role === "mainAdmin") return;
+    if (!open) return;
+    setPending(null);
+    setMessage("");
+    if (loading || !user || role === "admin" || role === "mainAdmin") return;
 
     listRequestsForClient(user.uid).then((requests) => {
       const unrated = requests.find((r) => r.status === "completed" && !r.rating);
       setPending(unrated ?? null);
-      if (!unrated) {
-        setMessage("You don't have a completed project waiting for a rating yet.");
-      }
     }).catch(() => {
-      setMessage("We couldn't load your completed projects. Please try again.");
+      // Public rating still works even if a signed-in client's private
+      // request list cannot be loaded.
     });
   }, [open, loading, user, role]);
 
@@ -63,23 +64,10 @@ export default function RatingPopup() {
         <h3 id="rate-us-title">How was your PIXORA experience?</h3>
         <p>Choose your rating, add your name if you want, and tell us what you think.</p>
 
-        {!user ? (
-          <div className="rating-empty-state">
-            <strong>Please sign in first.</strong>
-            <span>You need a client account to rate a completed project.</span>
-          </div>
-        ) : role === "admin" || role === "mainAdmin" ? (
-          <div className="rating-empty-state">
-            <strong>Client ratings only</strong>
-            <span>Sign in with a client account to submit a project rating.</span>
-          </div>
-        ) : pending ? (
+        {pending ? (
           <ProjectRatingBox request={pending} onRated={close} />
         ) : (
-          <div className="rating-empty-state">
-            <strong>No project ready to rate</strong>
-            <span>{message || "Complete a project first and the rating form will appear here."}</span>
-          </div>
+          <ProjectRatingBox onRated={close} />
         )}
       </div>
     </div>

@@ -108,6 +108,42 @@ export async function rateRequest(
   });
 }
 
+// Public ratings are intentionally stored separately from private project
+// requests so a visitor coming from WhatsApp can rate without creating a
+// client account or gaining access to private request documents.
+export async function createPublicRating(data: {
+  rating: number;
+  comment: string;
+  clientName?: string;
+  clientEmail?: string;
+  avatarUrl?: string;
+}): Promise<void> {
+  if (!Number.isInteger(data.rating) || data.rating < 1 || data.rating > 5) {
+    throw new Error("Rating must be between 1 and 5.");
+  }
+  const comment = data.comment.trim();
+  const clientName = data.clientName?.trim() || "";
+  const clientEmail = data.clientEmail?.trim() || "";
+  if (comment.length > 500 || clientName.length > 80 || clientEmail.length > 254) {
+    throw new Error("Your rating contains too much text.");
+  }
+  if (clientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)) {
+    throw new Error("Please enter a valid email address.");
+  }
+  await addDoc(collection(db, "pixora_testimonials"), {
+    rating: data.rating,
+    comment,
+    ...(clientName ? { clientName } : {}),
+    ...(clientEmail ? { clientEmail } : {}),
+    ...(data.avatarUrl ? { avatarUrl: data.avatarUrl } : {}),
+    category: "Client Feedback",
+    featured: true,
+    source: "public",
+    createdAt: serverTimestamp(),
+    ratedAt: serverTimestamp(),
+  });
+}
+
 export async function deleteRequest(id: string): Promise<void> {
   await deleteDoc(doc(db, "pixora_requests", id));
 }
@@ -123,10 +159,35 @@ export async function setRequestFeatured(
 // requests an admin has explicitly marked as featured are returned, so
 // nothing shows up until an admin picks it.
 export async function listFeaturedTestimonials(): Promise<ProjectRequest[]> {
-  const q = query(REQUESTS_COL, where("featured", "==", true));
-  const snap = await getDocs(q);
-  const items = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ProjectRequest, "id">) }));
-  return items.sort((a, b) => (b.ratedAt ?? 0) - (a.ratedAt ?? 0));
+  const [requestSnap, publicSnap] = await Promise.all([
+    getDocs(query(REQUESTS_COL, where("featured", "==", true))),
+    getDocs(query(collection(db, "pixora_testimonials"), where("featured", "==", true))),
+  ]);
+
+  const requestItems = requestSnap.docs.map((d) => ({
+    id: d.id,
+    ...(d.data() as Omit<ProjectRequest, "id">),
+  }));
+  const publicItems = publicSnap.docs.map((d) => {
+    const data = d.data();
+    return {
+      id: d.id,
+      clientId: "public",
+      clientEmail: typeof data.clientEmail === "string" ? data.clientEmail : "",
+      clientName: typeof data.clientName === "string" ? data.clientName : undefined,
+      avatarUrl: typeof data.avatarUrl === "string" ? data.avatarUrl : undefined,
+      category: typeof data.category === "string" ? data.category : "Client Feedback",
+      description: "",
+      imageUrls: [],
+      status: "completed" as const,
+      rating: typeof data.rating === "number" ? data.rating : 0,
+      comment: typeof data.comment === "string" ? data.comment : "",
+      ratedAt: typeof data.ratedAt?.toMillis === "function" ? data.ratedAt.toMillis() : undefined,
+      featured: true,
+    };
+  });
+
+  return [...requestItems, ...publicItems].sort((a, b) => (b.ratedAt ?? 0) - (a.ratedAt ?? 0));
 }
 
 // Live list of every request that could currently have an active chat —
