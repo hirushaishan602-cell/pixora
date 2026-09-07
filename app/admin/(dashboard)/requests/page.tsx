@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
-import { listAllRequests, approveRequest, completeRequest, deleteRequest, setRequestFeatured } from "@/lib/requests";
+import { listAllRequests, approveRequest, completeRequest, deleteRequest, setRequestFeatured, listPublicRatingsForAdmin, approvePublicRating, hidePublicRating, deletePublicRating } from "@/lib/requests";
 import { ProjectRequest } from "@/lib/types";
 import RequestChat from "@/components/RequestChat";
 
@@ -96,11 +96,15 @@ function AdminRequestsInner() {
   const [loading, setLoading] = useState(true);
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [openCompleteId, setOpenCompleteId] = useState<string | null>(null);
+  const [publicRatings, setPublicRatings] = useState<ProjectRequest[]>([]);
+  const [ratingsLoading, setRatingsLoading] = useState(true);
 
   const load = async () => {
     setLoading(true);
-    const data = await listAllRequests();
-    setRequests(data);
+    const [requestData, ratingData] = await Promise.all([listAllRequests(), listPublicRatingsForAdmin()]);
+    setRequests(requestData);
+    setPublicRatings(ratingData);
+    setRatingsLoading(false);
     setLoading(false);
   };
 
@@ -155,6 +159,60 @@ function AdminRequestsInner() {
           ))}
         </div>
       )}
+
+      <section className="admin-ratings-panel">
+        <div className="admin-ratings-header">
+          <div>
+            <h2>Client Ratings</h2>
+            <p className="admin-subtitle">Review public Rate Us submissions before they appear on What Our Clients Say.</p>
+          </div>
+          <span className="admin-rating-count">{publicRatings.filter((r) => r.featured).length} approved</span>
+        </div>
+
+        {ratingsLoading ? (
+          <p>Loading ratings...</p>
+        ) : publicRatings.length === 0 ? (
+          <p className="admin-subtitle">No public ratings yet.</p>
+        ) : (
+          <div className="admin-rating-list">
+            {publicRatings.map((rating) => (
+              <article key={rating.id} className={`admin-rating-card ${rating.featured ? "is-approved" : "is-pending"}`}>
+                <div className="admin-rating-avatar">
+                  {rating.avatarUrl ? <img src={rating.avatarUrl} alt="" /> : <span>{(rating.clientName || "C").slice(0, 1).toUpperCase()}</span>}
+                </div>
+                <div className="admin-rating-body">
+                  <div className="admin-rating-topline">
+                    <div>
+                      <strong>{rating.clientName || rating.clientEmail || "Happy Client"}</strong>
+                      <div className="admin-rating-stars">{"★".repeat(Math.max(0, Math.min(5, rating.rating || 0)))}</div>
+                    </div>
+                    <span className={`client-request-status status-${rating.featured ? "completed" : "pending"}`}>
+                      {rating.featured ? "Approved" : "Pending Review"}
+                    </span>
+                  </div>
+                  <p>{rating.comment}</p>
+                  {rating.clientEmail && <small>{rating.clientEmail}</small>}
+                  <div className="admin-form-actions">
+                    {!rating.featured && (
+                      <button className="primary-btn" onClick={async () => { await approvePublicRating(rating.id); await load(); }}>
+                        Approve & Show on Website
+                      </button>
+                    )}
+                    {rating.featured && (
+                      <button className="outline-btn" onClick={async () => { await hidePublicRating(rating.id); await load(); }}>
+                        Hide from Website
+                      </button>
+                    )}
+                    <button className="request-delete-btn" onClick={async () => { if (confirm("Delete this rating permanently?")) { await deletePublicRating(rating.id); await load(); } }}>
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
 
       <div className="admin-table-wrap">
         {loading ? (

@@ -111,6 +111,14 @@ export async function rateRequest(
 // Public ratings are intentionally stored separately from private project
 // requests so a visitor coming from WhatsApp can rate without creating a
 // client account or gaining access to private request documents.
+function maskPublicEmail(email: string): string {
+  if (!email || !email.includes("@")) return "";
+  const [local, domain] = email.split("@", 2);
+  if (!local || !domain) return "";
+  const visible = local.length <= 2 ? local.slice(0, 1) : local.slice(0, 2);
+  return `${visible}${"*".repeat(Math.max(4, local.length - visible.length))}@${domain}`;
+}
+
 export async function createPublicRating(data: {
   rating: number;
   comment: string;
@@ -118,40 +126,31 @@ export async function createPublicRating(data: {
   clientEmail?: string;
   avatarUrl?: string;
 }): Promise<void> {
-  // Public visitors save through a server route. This keeps the public
-  // Firestore collection independent from Firestore client rules and avoids
-  // a permission-denied failure when the visitor is not signed in.
-  const response = await fetch("/api/public/rating", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    let message = "Could not save your rating. Please try again.";
-    try {
-      const body = await response.json();
-      if (typeof body?.error === "string") message = body.error;
-    } catch {
-      // Keep the friendly fallback message.
-    }
-    throw new Error(message);
+  if (!Number.isInteger(data.rating) || data.rating < 1 || data.rating > 5) {
+    throw new Error("Rating must be between 1 and 5.");
   }
-}
-
-/**
- * Backward-compatible public rating API used by the standalone Rate Us modal.
- * Keep the public-review write path in one place so the footer/WhatsApp flow
- * and the completed-project rating flow cannot drift apart.
- */
-export async function ratePublicReview(data: {
-  rating: number;
-  comment: string;
-  clientName?: string;
-  clientEmail?: string;
-  avatarUrl?: string;
-}): Promise<void> {
-  return createPublicRating(data);
+  const comment = data.comment.trim();
+  const clientName = data.clientName?.trim() || "";
+  const clientEmail = data.clientEmail?.trim() || "";
+  if (comment.length > 500 || clientName.length > 80 || clientEmail.length > 254) {
+    throw new Error("Your rating contains too much text.");
+  }
+  if (clientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)) {
+    throw new Error("Please enter a valid email address.");
+  }
+  await addDoc(collection(db, "pixora_testimonials"), {
+    rating: data.rating,
+    comment,
+    ...(clientName ? { clientName } : {}),
+    ...(clientEmail ? { clientEmail: maskPublicEmail(clientEmail) } : {}),
+    ...(data.avatarUrl ? { avatarUrl: data.avatarUrl } : {}),
+    category: "Client Feedback",
+    featured: false,
+    source: "public",
+    status: "pending",
+    createdAt: serverTimestamp(),
+    ratedAt: serverTimestamp(),
+  });
 }
 
 export async function deleteRequest(id: string): Promise<void> {
@@ -168,6 +167,47 @@ export async function setRequestFeatured(
 // Public — used on the homepage "What Our Clients Say" section. Only
 // requests an admin has explicitly marked as featured are returned, so
 // nothing shows up until an admin picks it.
+export async function listPublicRatingsForAdmin(): Promise<ProjectRequest[]> {
+  const snap = await getDocs(collection(db, "pixora_testimonials"));
+  return snap.docs.map((d) => {
+    const data = d.data();
+    return {
+      id: d.id,
+      clientId: "public",
+      clientEmail: typeof data.clientEmail === "string" ? data.clientEmail : "",
+      clientName: typeof data.clientName === "string" ? data.clientName : undefined,
+      avatarUrl: typeof data.avatarUrl === "string" ? data.avatarUrl : undefined,
+      category: typeof data.category === "string" ? data.category : "Client Feedback",
+      description: "",
+      imageUrls: [],
+      status: data.status === "approved" ? "completed" : "pending",
+      rating: typeof data.rating === "number" ? data.rating : 0,
+      comment: typeof data.comment === "string" ? data.comment : "",
+      ratedAt: typeof data.ratedAt?.toMillis === "function" ? data.ratedAt.toMillis() : undefined,
+      featured: data.featured === true,
+    } as ProjectRequest;
+  }).sort((a, b) => (b.ratedAt ?? 0) - (a.ratedAt ?? 0));
+}
+
+export async function approvePublicRating(id: string): Promise<void> {
+  await updateDoc(doc(db, "pixora_testimonials", id), {
+    status: "approved",
+    featured: true,
+    approvedAt: serverTimestamp(),
+  });
+}
+
+export async function hidePublicRating(id: string): Promise<void> {
+  await updateDoc(doc(db, "pixora_testimonials", id), {
+    status: "pending",
+    featured: false,
+  });
+}
+
+export async function deletePublicRating(id: string): Promise<void> {
+  await deleteDoc(doc(db, "pixora_testimonials", id));
+}
+
 export async function listFeaturedTestimonials(): Promise<ProjectRequest[]> {
   // IMPORTANT: this function is used by the public website. Never read
   // pixora_requests here because those documents are private to clients/admins.

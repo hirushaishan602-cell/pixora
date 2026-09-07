@@ -47,16 +47,11 @@ service cloud.firestore {
     // Visitors can create a single review document with tightly constrained
     // fields, but cannot read, edit, or delete other visitors' submissions.
     match /pixora_testimonials/{testimonialId} {
-      // Public testimonials are intentionally public to read and public to
-      // submit. Do NOT call an auth-dependent admin helper here: a visitor
-      // submitting without signing in has request.auth == null, and an auth
-      // lookup inside that helper can turn the rule evaluation into a
-      // permission-denied result.
       allow read: if true;
-      allow create: if
+      allow create: if !isPixoraAdmin() &&
         request.resource.data.keys().hasOnly([
           'rating', 'comment', 'clientName', 'clientEmail', 'avatarUrl',
-          'category', 'featured', 'source', 'createdAt', 'ratedAt'
+          'category', 'featured', 'source', 'status', 'createdAt', 'ratedAt'
         ]) &&
         request.resource.data.rating is int &&
         request.resource.data.rating >= 1 &&
@@ -64,8 +59,9 @@ service cloud.firestore {
         request.resource.data.comment is string &&
         request.resource.data.comment.size() <= 500 &&
         request.resource.data.category == 'Client Feedback' &&
-        request.resource.data.featured == true &&
+        request.resource.data.featured == false &&
         request.resource.data.source == 'public' &&
+        request.resource.data.status == 'pending' &&
         request.resource.data.createdAt is timestamp &&
         request.resource.data.ratedAt is timestamp &&
         (!request.resource.data.keys().hasAny(['clientName']) ||
