@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminAuth, getAdminDb } from "@/lib/firebaseAdmin";
+import { adminAuth, adminDb } from "@/lib/firebaseAdmin";
 import { FieldValue } from "firebase-admin/firestore";
 
 /**
@@ -19,14 +19,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const decoded = await getAdminAuth().verifyIdToken(idToken);
+    const decoded = await adminAuth.verifyIdToken(idToken);
     const mainAdminEmail = process.env.MAIN_ADMIN_EMAIL?.toLowerCase().trim();
 
     if (!mainAdminEmail || decoded.email?.toLowerCase() !== mainAdminEmail) {
       return NextResponse.json({ promoted: false });
     }
 
-    const userRef = getAdminDb().collection("pixora_users").doc(decoded.uid);
+    const userRef = adminDb.collection("pixora_users").doc(decoded.uid);
     const snap = await userRef.get();
 
     if (snap.exists && snap.data()?.role === "mainAdmin") {
