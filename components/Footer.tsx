@@ -9,6 +9,7 @@ import {
   FaLinkedinIn,
 } from "react-icons/fa";
 import { useSiteData } from "@/context/SiteDataContext";
+import { RATE_US_EVENT } from "./RatingPopup";
 
 export default function Footer() {
   const { config } = useSiteData();
@@ -39,7 +40,13 @@ export default function Footer() {
 
           <p>{config.tagline}</p>
 
-          <a href="#testimonials" className="footer-rate-us">★ Rate Us</a>
+          <button
+            type="button"
+            className="footer-rate-us"
+            onClick={() => window.dispatchEvent(new Event(RATE_US_EVENT))}
+          >
+            ★ Rate Us
+          </button>
 
           {socials.length > 0 && (
             <div className="footer-socials">

@@ -101,6 +101,7 @@ export type ProjectRequest = {
   clientId: string;
   clientEmail: string;
   clientName?: string;
+  avatarUrl?: string;
   category: string;
   description: string;
   imageUrls: string[];

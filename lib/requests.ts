@@ -16,10 +16,20 @@ import { db } from "./firebase";
 import { ProjectRequest } from "./types";
 import { uploadToCloudinary } from "./cloudinary";
 
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+
 const REQUESTS_COL = collection(db, "pixora_requests");
 
 export async function uploadRequestImage(file: File): Promise<string> {
+  if (!file.type.startsWith("image/")) throw new Error("Only image files are allowed.");
+  if (file.size > MAX_UPLOAD_BYTES) throw new Error("Image must be 5 MB or smaller.");
   return uploadToCloudinary(file, "pixora-requests");
+}
+
+export async function uploadRatingAvatar(file: File): Promise<string> {
+  if (!file.type.startsWith("image/")) throw new Error("Only image files are allowed.");
+  if (file.size > MAX_UPLOAD_BYTES) throw new Error("Profile image must be 5 MB or smaller.");
+  return uploadToCloudinary(file, "pixora-rating-avatars");
 }
 
 export async function uploadRequestImages(files: File[]): Promise<string[]> {
@@ -87,12 +97,13 @@ export async function completeRequest(
 
 export async function rateRequest(
   id: string,
-  data: { rating: number; comment: string; clientName?: string }
+  data: { rating: number; comment: string; clientName?: string; avatarUrl?: string }
 ): Promise<void> {
   await updateDoc(doc(db, "pixora_requests", id), {
     rating: data.rating,
     comment: data.comment,
     ...(data.clientName?.trim() ? { clientName: data.clientName.trim() } : {}),
+    ...(data.avatarUrl ? { avatarUrl: data.avatarUrl } : {}),
     ratedAt: serverTimestamp(),
   });
 }
