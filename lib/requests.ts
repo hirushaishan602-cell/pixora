@@ -144,6 +144,21 @@ export async function createPublicRating(data: {
   });
 }
 
+/**
+ * Backward-compatible public rating API used by the standalone Rate Us modal.
+ * Keep the public-review write path in one place so the footer/WhatsApp flow
+ * and the completed-project rating flow cannot drift apart.
+ */
+export async function ratePublicReview(data: {
+  rating: number;
+  comment: string;
+  clientName?: string;
+  clientEmail?: string;
+  avatarUrl?: string;
+}): Promise<void> {
+  return createPublicRating(data);
+}
+
 export async function deleteRequest(id: string): Promise<void> {
   await deleteDoc(doc(db, "pixora_requests", id));
 }
