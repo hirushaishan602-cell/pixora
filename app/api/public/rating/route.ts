@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
-import { adminDb } from "@/lib/firebaseAdmin";
+import adminDb from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
 
