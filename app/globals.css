@@ -2716,6 +2716,13 @@ font-size:13px;
    Optimized for 320px–768px screens and touch interaction.
 ========================================================== */
 
+/* Request action buttons: Chat + Mark Project Complete stay side-by-side */
+.admin-request-card .admin-form-actions{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:12px;}
+.admin-request-card .admin-form-actions .request-chat-wrap{flex:0 0 auto;width:auto;margin-top:0;}
+.admin-request-card .admin-form-actions .request-chat-wrap .request-chat-toggle{width:auto;}
+.admin-request-card .admin-form-actions > .primary-btn{flex:0 0 auto;width:auto;}
+.request-chat-wrap.open .request-chat{position:absolute;top:52px;left:0;z-index:50;}
+
 @media (max-width: 768px){
   html{scroll-padding-top:82px;}
   body{font-size:15px;}
@@ -2850,12 +2857,18 @@ font-size:13px;
   /* Floating controls */
   .top{right:14px;bottom:14px;width:44px;height:44px;}
 
-  /* Admin mobile */
+/* Admin mobile */
   .admin-content{padding:20px 14px;}
   .admin-form{padding:20px 16px;margin-bottom:22px;}
   .admin-form-row,.admin-stats-row{grid-template-columns:1fr;gap:12px;}
   .admin-form-actions{flex-direction:column;align-items:stretch;}
   .admin-form-actions button{width:100%;}
+  .admin-request-card .admin-form-actions .request-chat-wrap{width:auto;}
+  .admin-request-card .admin-form-actions .request-chat-toggle{width:auto;}
+  .admin-request-card .admin-form-actions .primary-btn{width:auto;flex:0 0 auto;}
+  .admin-request-card .admin-form-actions{flex-direction:row;align-items:center;}
+  .admin-request-card .admin-form-actions > .primary-btn{width:auto;flex:0 0 auto;}
+  .admin-request-card .admin-form-actions .request-chat-toggle{width:auto;}
   .admin-cards,.admin-project-grid{grid-template-columns:1fr;gap:14px;}
   .admin-table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
   .admin-table{min-width:680px;}
@@ -3245,11 +3258,11 @@ html, body {
 /* ==========================================================
    PIXORA REQUEST CHAT — restored, clean UI
 ========================================================== */
-.request-chat-wrap{width:100%;margin-top:18px;position:relative;min-width:0;}
+.request-chat-wrap{width:auto;margin-top:18px;position:relative;min-width:0;}
 .request-chat-toggle{display:inline-flex;align-items:center;justify-content:center;gap:9px;border:1px solid rgba(255,255,255,.12);background:#111;color:#fff;border-radius:12px;padding:11px 17px;font:inherit;font-weight:700;cursor:pointer;position:relative;min-height:46px;transition:transform .2s ease,background .2s ease,border-color .2s ease;}
 .request-chat-toggle:hover{background:#181818;border-color:rgba(255,145,0,.45);transform:translateY(-1px);}
 .request-chat-badge{position:absolute;right:7px;top:6px;width:8px;height:8px;border-radius:50%;background:#ff3b30;box-shadow:0 0 0 3px #111;}
-.request-chat{width:100%;margin-top:12px;background:#0c0c0c;border:1px solid rgba(255,255,255,.1);border-radius:18px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.25);min-width:0;}
+.request-chat{width:min(760px,calc(100vw - 72px));margin-top:12px;background:#0c0c0c;border:1px solid rgba(255,255,255,.1);border-radius:18px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.25);min-width:0;}
 .request-chat-messages{height:360px;max-height:52vh;overflow-y:auto;overflow-x:hidden;padding:18px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth;overscroll-behavior:contain;}
 .request-chat-messages::-webkit-scrollbar{width:6px}.request-chat-messages::-webkit-scrollbar-thumb{background:#333;border-radius:20px}.request-chat-messages::-webkit-scrollbar-track{background:transparent}
 .request-chat-empty{margin:auto;max-width:420px;text-align:center;color:#8f8f8f;font-size:14px;line-height:1.6;padding:30px 16px;}
@@ -3278,8 +3291,8 @@ html, body {
 .request-chat-locked{margin:0;padding:15px 16px;border-top:1px solid rgba(255,255,255,.08);color:#999;text-align:center;font-size:13px;line-height:1.5;background:#101010;}
 @media(max-width:600px){
  .request-chat-wrap{margin-top:14px;}
- .request-chat-toggle{width:100%;}
- .request-chat{border-radius:14px;}
+ .request-chat-toggle{width:auto;min-width:128px;}
+ .request-chat{width:min(100%,calc(100vw - 48px));border-radius:14px;}
  .request-chat-messages{height:min(58vh,430px);min-height:280px;padding:13px;gap:8px;}
  .request-chat-bubble{max-width:88%;padding:9px 11px;border-radius:14px;}
  .request-chat-bubble img{max-height:230px;}
