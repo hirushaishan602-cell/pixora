@@ -118,41 +118,25 @@ export async function createPublicRating(data: {
   clientEmail?: string;
   avatarUrl?: string;
 }): Promise<void> {
-  if (!Number.isInteger(data.rating) || data.rating < 1 || data.rating > 5) {
-    throw new Error("Rating must be between 1 and 5.");
-  }
-  const comment = data.comment.trim();
-  const clientName = data.clientName?.trim() || "";
-  const clientEmail = data.clientEmail?.trim() || "";
-  if (comment.length > 500 || clientName.length > 80 || clientEmail.length > 254) {
-    throw new Error("Your rating contains too much text.");
-  }
-  if (clientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)) {
-    throw new Error("Please enter a valid email address.");
-  }
-
-  // Never publish a visitor's full email address. Keep only a masked form so
-  // the public testimonial can still identify the client without exposing PII.
-  const publicEmail = clientEmail
-    ? (() => {
-        const [local, domain] = clientEmail.split("@");
-        const visible = local.length <= 2 ? local.slice(0, 1) : local.slice(0, 2);
-        return `${visible}${"*".repeat(Math.max(3, local.length - visible.length))}@${domain}`;
-      })()
-    : "";
-
-  await addDoc(collection(db, "pixora_testimonials"), {
-    rating: data.rating,
-    comment,
-    ...(clientName ? { clientName } : {}),
-    ...(publicEmail ? { clientEmail: publicEmail } : {}),
-    ...(data.avatarUrl ? { avatarUrl: data.avatarUrl } : {}),
-    category: "Client Feedback",
-    featured: true,
-    source: "public",
-    createdAt: serverTimestamp(),
-    ratedAt: serverTimestamp(),
+  // Public visitors save through a server route. This keeps the public
+  // Firestore collection independent from Firestore client rules and avoids
+  // a permission-denied failure when the visitor is not signed in.
+  const response = await fetch("/api/public/rating", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
   });
+
+  if (!response.ok) {
+    let message = "Could not save your rating. Please try again.";
+    try {
+      const body = await response.json();
+      if (typeof body?.error === "string") message = body.error;
+    } catch {
+      // Keep the friendly fallback message.
+    }
+    throw new Error(message);
+  }
 }
 
 /**
