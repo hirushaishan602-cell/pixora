@@ -20,6 +20,11 @@ const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 
 const REQUESTS_COL = collection(db, "pixora_requests");
 
+// New public-rating collection. This is intentionally separate from the
+// previous testimonial collection so legacy ratings are never mixed into the
+// new moderation/public-display flow.
+const PUBLIC_RATINGS_COL = collection(db, "pixora_ratings");
+
 export async function uploadRequestImage(file: File): Promise<string> {
   if (!file.type.startsWith("image/")) throw new Error("Only image files are allowed.");
   if (file.size > MAX_UPLOAD_BYTES) throw new Error("Image must be 5 MB or smaller.");
@@ -142,6 +147,14 @@ export async function ratePublicReview(data: {
   });
 }
 
+/**
+ * Creates a NEW public rating for admin moderation.
+ *
+ * This deliberately uses pixora_ratings rather than the legacy
+ * pixora_testimonials collection. Therefore ratings created by the new form
+ * can never be mixed with old records, while the old collection remains
+ * untouched.
+ */
 export async function createPublicRating(data: {
   rating: number;
   comment: string;
@@ -152,28 +165,38 @@ export async function createPublicRating(data: {
   if (!Number.isInteger(data.rating) || data.rating < 1 || data.rating > 5) {
     throw new Error("Rating must be between 1 and 5.");
   }
+
   const comment = data.comment.trim();
   const clientName = data.clientName?.trim() || "";
   const clientEmail = data.clientEmail?.trim() || "";
+  const avatarUrl = data.avatarUrl?.trim() || "";
+
+  if (!comment) throw new Error("Please tell us about your experience.");
   if (comment.length > 500 || clientName.length > 80 || clientEmail.length > 254) {
     throw new Error("Your rating contains too much text.");
   }
   if (clientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)) {
     throw new Error("Please enter a valid email address.");
   }
-  await addDoc(collection(db, "pixora_testimonials"), {
+  if (avatarUrl.length > 2000) throw new Error("Profile image URL is too long.");
+
+  const payload: Record<string, unknown> = {
     rating: data.rating,
     comment,
-    ...(clientName ? { clientName } : {}),
-    ...(clientEmail ? { clientEmail: maskPublicEmail(clientEmail) } : {}),
-    ...(data.avatarUrl ? { avatarUrl: data.avatarUrl } : {}),
     category: "Client Feedback",
     featured: false,
     source: "public",
     status: "pending",
     createdAt: serverTimestamp(),
     ratedAt: serverTimestamp(),
-  });
+  };
+
+  // Never store the visitor's full email in the public-rating document.
+  if (clientName) payload.clientName = clientName;
+  if (clientEmail) payload.clientEmail = maskPublicEmail(clientEmail);
+  if (avatarUrl) payload.avatarUrl = avatarUrl;
+
+  await addDoc(PUBLIC_RATINGS_COL, payload);
 }
 
 export async function deleteRequest(id: string): Promise<void> {
@@ -195,7 +218,7 @@ export async function listPublicRatingsForAdmin(): Promise<ProjectRequest[]> {
     // Do not use an orderBy here. Reading the collection and sorting the
     // small moderation list client-side avoids requiring a Firestore index
     // and keeps the admin panel from getting stuck if an index is missing.
-    const snap = await getDocs(collection(db, "pixora_testimonials"));
+    const snap = await getDocs(PUBLIC_RATINGS_COL);
     return snap.docs.map((d) => {
     const data = d.data();
     return {
@@ -224,7 +247,7 @@ export async function listPublicRatingsForAdmin(): Promise<ProjectRequest[]> {
 }
 
 export async function approvePublicRating(id: string): Promise<void> {
-  await updateDoc(doc(db, "pixora_testimonials", id), {
+  await updateDoc(doc(db, "pixora_ratings", id), {
     status: "approved",
     featured: true,
     approvedAt: serverTimestamp(),
@@ -232,14 +255,14 @@ export async function approvePublicRating(id: string): Promise<void> {
 }
 
 export async function hidePublicRating(id: string): Promise<void> {
-  await updateDoc(doc(db, "pixora_testimonials", id), {
+  await updateDoc(doc(db, "pixora_ratings", id), {
     status: "pending",
     featured: false,
   });
 }
 
 export async function deletePublicRating(id: string): Promise<void> {
-  await deleteDoc(doc(db, "pixora_testimonials", id));
+  await deleteDoc(doc(db, "pixora_ratings", id));
 }
 
 export async function listFeaturedTestimonials(): Promise<ProjectRequest[]> {
@@ -249,7 +272,7 @@ export async function listFeaturedTestimonials(): Promise<ProjectRequest[]> {
   // successful Rate Us submission look like it failed when onRated() refreshes.
   try {
     const publicSnap = await getDocs(
-      query(collection(db, "pixora_testimonials"), where("featured", "==", true))
+      query(PUBLIC_RATINGS_COL, where("featured", "==", true))
     );
 
     const publicItems = publicSnap.docs.map((d) => {

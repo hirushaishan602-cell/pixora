@@ -46,15 +46,18 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Public testimonials are isolated from private project requests.
-    // Visitors can create a single review document with tightly constrained
-    // fields, but cannot read, edit, or delete other visitors' submissions.
-    match /pixora_testimonials/{testimonialId} {
-      // Visitors can only read reviews that an admin has approved for the
-      // public site. Admins can read all submissions for moderation.
-      allow read: if isPixoraAdmin() ||
-        (resource.data.featured == true);
-      allow create: if !isPixoraAdmin() &&
+    // Public ratings are isolated from private project requests and from the
+    // legacy pixora_testimonials collection. New Rate Us submissions are
+    // always written to pixora_ratings and enter moderation as pending.
+    match /pixora_ratings/{ratingId} {
+      // Anyone can read only ratings explicitly approved for the public site.
+      // Admins can read pending submissions for moderation.
+      allow read: if isPixoraAdmin() || resource.data.featured == true;
+
+      // Public visitors may submit a new rating without an account. The
+      // document is tightly constrained so a visitor cannot write arbitrary
+      // fields, mark a review approved, or change the moderation state.
+      allow create: if
         request.resource.data.keys().hasOnly([
           'rating', 'comment', 'clientName', 'clientEmail', 'avatarUrl',
           'category', 'featured', 'source', 'status', 'createdAt', 'ratedAt'
@@ -63,6 +66,7 @@ service cloud.firestore {
         request.resource.data.rating >= 1 &&
         request.resource.data.rating <= 5 &&
         request.resource.data.comment is string &&
+        request.resource.data.comment.size() >= 1 &&
         request.resource.data.comment.size() <= 500 &&
         request.resource.data.category == 'Client Feedback' &&
         request.resource.data.featured == false &&
@@ -76,6 +80,8 @@ service cloud.firestore {
           (request.resource.data.clientEmail is string && request.resource.data.clientEmail.size() <= 254)) &&
         (!request.resource.data.keys().hasAny(['avatarUrl']) ||
           (request.resource.data.avatarUrl is string && request.resource.data.avatarUrl.size() <= 2000));
+
+      // Only PIXORA admins can approve/hide/delete a submitted rating.
       allow update, delete: if isPixoraAdmin();
     }
 
