@@ -3,7 +3,7 @@
 import { useEffect, useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { listUsers, setUserRole } from "@/lib/users";
+import { listUsers, setUserRole, createAdminAccount } from "@/lib/users";
 import { AppUser } from "@/lib/types";
 
 export default function AdminUsersPage() {
@@ -40,19 +40,8 @@ export default function AdminUsersPage() {
     setSuccess("");
     setCreating(true);
     try {
-      const idToken = await user?.getIdToken();
-      const res = await fetch("/api/admin/create-user", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to create admin");
-      }
+      if (!user) throw new Error("You must be signed in as the main admin.");
+      await createAdminAccount(email.trim(), password, user.uid);
       setSuccess(`${email} was added as an admin.`);
       setEmail("");
       setPassword("");

@@ -31,20 +31,6 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-// Fire-and-forget: promotes this user to mainAdmin if their email matches
-// MAIN_ADMIN_EMAIL on the server. Silently does nothing otherwise.
-async function syncMainAdminRole(firebaseUser: User) {
-  try {
-    const idToken = await firebaseUser.getIdToken();
-    await fetch("/api/admin/sync-role", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${idToken}` },
-    });
-  } catch {
-    // ignore - not critical to the login flow
-  }
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<Role | null>(null);
@@ -54,7 +40,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       if (firebaseUser) {
-        await syncMainAdminRole(firebaseUser);
         const userRole = await getUserRole(firebaseUser.uid);
         setRole(userRole);
       } else {

@@ -26,18 +26,8 @@ export default function LoginPage() {
       // everyone else goes back to the site.
       const currentUser = auth.currentUser;
       if (currentUser) {
-        // make sure a first-time mainAdmin (matching MAIN_ADMIN_EMAIL) is
-        // promoted before we check their role, so the redirect is correct
-        // the very first time they log in.
-        try {
-          const idToken = await currentUser.getIdToken();
-          await fetch("/api/admin/sync-role", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${idToken}` },
-          });
-        } catch {
-          // ignore - not critical
-        }
+        // The admin role is read directly from the existing Firestore user profile.
+
 
         const role = await getUserRole(currentUser.uid);
         if (role === "admin" || role === "mainAdmin") {

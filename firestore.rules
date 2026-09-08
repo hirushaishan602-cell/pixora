@@ -37,9 +37,12 @@ service cloud.firestore {
     match /pixora_users/{uid} {
       allow read: if request.auth != null && (request.auth.uid == uid || isPixoraAdmin());
       allow update: if isPixoraMainAdmin();
-      // clients can create their own profile doc on signup, but only as role "user"
-      allow create: if request.auth != null && request.auth.uid == uid &&
-        request.resource.data.role == 'user';
+      // clients can create their own profile doc on signup, but only as role "user".
+      // The existing main admin may also create an admin profile for a newly
+      // created Firebase Auth account.
+      allow create: if (request.auth != null && request.auth.uid == uid &&
+        request.resource.data.role == 'user') ||
+        (isPixoraMainAdmin() && request.resource.data.role == 'admin');
       allow delete: if false;
     }
 
