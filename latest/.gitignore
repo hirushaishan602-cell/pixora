@@ -1,0 +1,4 @@
+# Local environment files — never commit Firebase/Admin secrets
+.env
+.env.*
+!.env.local.example

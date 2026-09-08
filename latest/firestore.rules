@@ -1,0 +1,102 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ============================================================
+    // PIXORA rules — add these match blocks INSIDE your existing
+    // Creativo firestore.rules file, alongside your current rules.
+    // Do NOT replace your Creativo rules with this whole file —
+    // these collections are namespaced with a "pixora_" prefix
+    // specifically so they don't touch Creativo's own data.
+    // ============================================================
+
+    function pixoraRole() {
+      return get(/databases/$(database)/documents/pixora_users/$(request.auth.uid)).data.role;
+    }
+
+    function isPixoraAdmin() {
+      return request.auth != null &&
+        (pixoraRole() == 'admin' || pixoraRole() == 'mainAdmin');
+    }
+
+    function isPixoraMainAdmin() {
+      return request.auth != null && pixoraRole() == 'mainAdmin';
+    }
+
+    match /pixora_siteConfig/{docId} {
+      allow read: if true;
+      allow write: if isPixoraAdmin();
+    }
+
+    match /pixora_projects/{projectId} {
+      allow read: if true;
+      allow write: if isPixoraAdmin();
+    }
+
+    match /pixora_users/{uid} {
+      allow read: if request.auth != null && (request.auth.uid == uid || isPixoraAdmin());
+      allow update: if isPixoraMainAdmin();
+      // clients can create their own profile doc on signup, but only as role "user".
+      // The existing main admin may also create an admin profile for a newly
+      // created Firebase Auth account.
+      allow create: if (request.auth != null && request.auth.uid == uid &&
+        request.resource.data.role == 'user') ||
+        (isPixoraMainAdmin() && request.resource.data.role == 'admin');
+      allow delete: if false;
+    }
+
+    // Public Rate Us reviews use a brand-new collection. Legacy ratings are
+    // never read by the public testimonials UI. Visitors may create only a
+    // pending review; only a PIXORA admin can moderate/publish it.
+    match /pixora_public_reviews_v2/{ratingId} {
+      allow read: if isPixoraAdmin() || resource.data.featured == true;
+
+      allow create: if
+        request.resource.data.rating is int &&
+        request.resource.data.rating >= 1 &&
+        request.resource.data.rating <= 5 &&
+        request.resource.data.comment is string &&
+        request.resource.data.comment.size() >= 1 &&
+        request.resource.data.comment.size() <= 500 &&
+        request.resource.data.category == 'Client Feedback' &&
+        request.resource.data.featured == false &&
+        request.resource.data.source == 'public' &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.createdAt is timestamp &&
+        request.resource.data.ratedAt is timestamp &&
+        (!request.resource.data.keys().hasAny(['clientName']) ||
+          (request.resource.data.clientName is string && request.resource.data.clientName.size() <= 80)) &&
+        (!request.resource.data.keys().hasAny(['clientEmail']) ||
+          (request.resource.data.clientEmail is string && request.resource.data.clientEmail.size() <= 254)) &&
+        (!request.resource.data.keys().hasAny(['avatarUrl']) ||
+          (request.resource.data.avatarUrl is string && request.resource.data.avatarUrl.size() <= 2000));
+
+      allow update, delete: if isPixoraAdmin();
+    }
+
+    match /pixora_requests/{requestId} {
+      // clients can read only their own requests, admins can read everything
+      allow read: if request.auth != null &&
+        (resource.data.clientId == request.auth.uid || isPixoraAdmin());
+
+      // clients can create a request for themselves, always starting as "pending"
+      allow create: if request.auth != null &&
+        request.resource.data.clientId == request.auth.uid &&
+        request.resource.data.status == 'pending';
+
+      // admins can update anything (approve / complete);
+      // the owning client may only add their rating + comment once the project is completed
+      allow update: if isPixoraAdmin() ||
+        (request.auth != null &&
+          resource.data.clientId == request.auth.uid &&
+          resource.data.status == 'completed' &&
+          request.resource.data.category == resource.data.category &&
+          request.resource.data.description == resource.data.description &&
+          request.resource.data.status == resource.data.status &&
+          request.resource.data.deliverableUrl == resource.data.deliverableUrl);
+
+      allow delete: if isPixoraAdmin();
+    }
+  }
+}
