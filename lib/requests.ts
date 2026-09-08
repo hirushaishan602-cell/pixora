@@ -24,7 +24,7 @@ const REQUESTS_COL = collection(db, "pixora_requests");
 // New public-rating collection. This is intentionally separate from the
 // previous testimonial collection so legacy ratings are never mixed into the
 // new moderation/public-display flow.
-const PUBLIC_RATINGS_COLLECTION = "pixora_public_reviews_v2";
+const PUBLIC_RATINGS_COLLECTION = "pixora_testimonials";
 const PUBLIC_RATINGS_COL = collection(db, PUBLIC_RATINGS_COLLECTION);
 
 export async function uploadRequestImage(file: File): Promise<string> {

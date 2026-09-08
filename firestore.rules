@@ -49,7 +49,7 @@ service cloud.firestore {
     // Public Rate Us reviews use a brand-new collection. Legacy ratings are
     // never read by the public testimonials UI. Visitors may create only a
     // pending review; only a PIXORA admin can moderate/publish it.
-    match /pixora_public_reviews_v2/{ratingId} {
+    match /pixora_testimonials/{ratingId} {
       allow read: if isPixoraAdmin() || resource.data.featured == true;
 
       allow create: if
