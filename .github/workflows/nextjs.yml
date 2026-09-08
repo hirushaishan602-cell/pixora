@@ -80,19 +80,6 @@ jobs:
         with:
           path: ./out
 
-      # Firestore rules are not deployed by GitHub Pages itself. When the
-      # repository has a FIREBASE_SERVICE_ACCOUNT secret, deploy the exact
-      # firestore.rules shipped with this project so the public Rate Us write
-      # path is enabled in the live Firebase project as well.
-      - name: Deploy Firestore rules
-        if: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: |
-          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-service-account.json"
-          npm install --global firebase-tools
-          GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/firebase-service-account.json" firebase deploy --only firestore:rules --project pixora-ad6a8
-
   # Deployment job
   deploy:
     environment:
