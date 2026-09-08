@@ -10,6 +10,7 @@ import {
   where,
   orderBy,
   serverTimestamp,
+  Timestamp,
   Unsubscribe,
 } from "firebase/firestore";
 import { db } from "./firebase";
@@ -23,7 +24,8 @@ const REQUESTS_COL = collection(db, "pixora_requests");
 // New public-rating collection. This is intentionally separate from the
 // previous testimonial collection so legacy ratings are never mixed into the
 // new moderation/public-display flow.
-const PUBLIC_RATINGS_COL = collection(db, "pixora_ratings");
+const PUBLIC_RATINGS_COLLECTION = "pixora_public_reviews_v2";
+const PUBLIC_RATINGS_COL = collection(db, PUBLIC_RATINGS_COLLECTION);
 
 export async function uploadRequestImage(file: File): Promise<string> {
   if (!file.type.startsWith("image/")) throw new Error("Only image files are allowed.");
@@ -150,8 +152,8 @@ export async function ratePublicReview(data: {
 /**
  * Creates a NEW public rating for admin moderation.
  *
- * This deliberately uses pixora_ratings rather than the legacy
- * pixora_testimonials collection. Therefore ratings created by the new form
+ * This deliberately uses a brand-new collection rather than any legacy
+ * rating/testimonial collection. Therefore ratings created by the new form
  * can never be mixed with old records, while the old collection remains
  * untouched.
  */
@@ -187,8 +189,6 @@ export async function createPublicRating(data: {
     featured: false,
     source: "public",
     status: "pending",
-    createdAt: serverTimestamp(),
-    ratedAt: serverTimestamp(),
   };
 
   // Never store the visitor's full email in the public-rating document.
@@ -196,7 +196,25 @@ export async function createPublicRating(data: {
   if (clientEmail) payload.clientEmail = maskPublicEmail(clientEmail);
   if (avatarUrl) payload.avatarUrl = avatarUrl;
 
-  await addDoc(PUBLIC_RATINGS_COL, payload);
+  // Use an explicit client timestamp instead of serverTimestamp(). This makes
+  // the document immediately type-stable for Firestore rules and avoids a
+  // pending server transform being rejected by stricter rules deployments.
+  payload.createdAt = Timestamp.now();
+  payload.ratedAt = Timestamp.now();
+
+  // addDoc creates the ID and performs the public create operation directly
+  // from the browser. No API route is involved (the site is a static export).
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      await addDoc(PUBLIC_RATINGS_COL, payload);
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt === 0) await new Promise((resolve) => setTimeout(resolve, 350));
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("Unable to save rating.");
 }
 
 export async function deleteRequest(id: string): Promise<void> {
@@ -247,7 +265,7 @@ export async function listPublicRatingsForAdmin(): Promise<ProjectRequest[]> {
 }
 
 export async function approvePublicRating(id: string): Promise<void> {
-  await updateDoc(doc(db, "pixora_ratings", id), {
+  await updateDoc(doc(db, PUBLIC_RATINGS_COLLECTION, id), {
     status: "approved",
     featured: true,
     approvedAt: serverTimestamp(),
@@ -255,14 +273,14 @@ export async function approvePublicRating(id: string): Promise<void> {
 }
 
 export async function hidePublicRating(id: string): Promise<void> {
-  await updateDoc(doc(db, "pixora_ratings", id), {
+  await updateDoc(doc(db, PUBLIC_RATINGS_COLLECTION, id), {
     status: "pending",
     featured: false,
   });
 }
 
 export async function deletePublicRating(id: string): Promise<void> {
-  await deleteDoc(doc(db, "pixora_ratings", id));
+  await deleteDoc(doc(db, PUBLIC_RATINGS_COLLECTION, id));
 }
 
 export async function listFeaturedTestimonials(): Promise<ProjectRequest[]> {

@@ -46,22 +46,13 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Public ratings are isolated from private project requests and from the
-    // legacy pixora_testimonials collection. New Rate Us submissions are
-    // always written to pixora_ratings and enter moderation as pending.
-    match /pixora_ratings/{ratingId} {
-      // Anyone can read only ratings explicitly approved for the public site.
-      // Admins can read pending submissions for moderation.
+    // Public Rate Us reviews use a brand-new collection. Legacy ratings are
+    // never read by the public testimonials UI. Visitors may create only a
+    // pending review; only a PIXORA admin can moderate/publish it.
+    match /pixora_public_reviews_v2/{ratingId} {
       allow read: if isPixoraAdmin() || resource.data.featured == true;
 
-      // Public visitors may submit a new rating without an account. The
-      // document is tightly constrained so a visitor cannot write arbitrary
-      // fields, mark a review approved, or change the moderation state.
       allow create: if
-        request.resource.data.keys().hasOnly([
-          'rating', 'comment', 'clientName', 'clientEmail', 'avatarUrl',
-          'category', 'featured', 'source', 'status', 'createdAt', 'ratedAt'
-        ]) &&
         request.resource.data.rating is int &&
         request.resource.data.rating >= 1 &&
         request.resource.data.rating <= 5 &&
@@ -81,7 +72,6 @@ service cloud.firestore {
         (!request.resource.data.keys().hasAny(['avatarUrl']) ||
           (request.resource.data.avatarUrl is string && request.resource.data.avatarUrl.size() <= 2000));
 
-      // Only PIXORA admins can approve/hide/delete a submitted rating.
       allow update, delete: if isPixoraAdmin();
     }
 
