@@ -47,7 +47,10 @@ service cloud.firestore {
     // Visitors can create a single review document with tightly constrained
     // fields, but cannot read, edit, or delete other visitors' submissions.
     match /pixora_testimonials/{testimonialId} {
-      allow read: if true;
+      // Visitors can only read reviews that an admin has approved for the
+      // public site. Admins can read all submissions for moderation.
+      allow read: if isPixoraAdmin() ||
+        (resource.data.featured == true);
       allow create: if !isPixoraAdmin() &&
         request.resource.data.keys().hasOnly([
           'rating', 'comment', 'clientName', 'clientEmail', 'avatarUrl',

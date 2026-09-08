@@ -39,7 +39,7 @@ Admin panel එකට (server-side admin user creation) අමතරව මේ�
 ```
 FIREBASE_ADMIN_PROJECT_ID=
 FIREBASE_ADMIN_CLIENT_EMAIL=
-FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+FIREBASE_ADMIN_PRIVATE_KEY="<SET_IN_DEPLOYMENT_ENVIRONMENT_ONLY>"
 ```
 
 (මේ service account key එක download කරගත්තු JSON file එකේ `project_id`, `client_email`, `private_key` values.)

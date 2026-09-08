@@ -12,11 +12,9 @@ export default function RatingPopup() {
   const { user, role, loading } = useAuth();
   const [pending, setPending] = useState<ProjectRequest | null>(null);
   const [open, setOpen] = useState(false);
-  const [message, setMessage] = useState("");
 
   useEffect(() => {
     const openRateUs = () => {
-      setMessage("");
       setOpen(true);
     };
 
@@ -27,15 +25,19 @@ export default function RatingPopup() {
   useEffect(() => {
     if (!open) return;
     setPending(null);
-    setMessage("");
+
+    // Rate Us is public: visitors do not need an account, a WhatsApp
+    // conversation, or a completed project. For signed-in clients we can
+    // optionally attach an unfinished project rating when one exists, but
+    // the public form remains the fallback at all times.
     if (loading || !user || role === "admin" || role === "mainAdmin") return;
 
     listRequestsForClient(user.uid).then((requests) => {
       const unrated = requests.find((r) => r.status === "completed" && !r.rating);
       setPending(unrated ?? null);
     }).catch(() => {
-      // Public rating still works even if a signed-in client's private
-      // request list cannot be loaded.
+      // Ignore private-request read failures; public Rate Us still works.
+      setPending(null);
     });
   }, [open, loading, user, role]);
 
@@ -44,7 +46,6 @@ export default function RatingPopup() {
   const close = () => {
     setOpen(false);
     setPending(null);
-    setMessage("");
   };
 
   return (
