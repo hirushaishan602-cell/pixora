@@ -16,10 +16,16 @@ export async function uploadToCloudinary(file: File, folder: string): Promise<st
     { method: "POST", body: formData }
   );
 
-  if (!res.ok) {
-    throw new Error("Cloudinary upload failed. Check the cloud name / upload preset.");
+  let data: { secure_url?: string; error?: { message?: string } };
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error("Cloudinary returned an invalid response.");
   }
 
-  const data = await res.json();
-  return data.secure_url as string;
+  if (!res.ok || !data.secure_url) {
+    throw new Error(data.error?.message || "Cloudinary image upload failed.");
+  }
+
+  return data.secure_url;
 }

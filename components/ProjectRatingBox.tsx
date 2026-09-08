@@ -48,8 +48,16 @@ export default function ProjectRatingBox({ request, onRated }: { request?: Proje
         });
       }
       onRated();
-    } catch {
-      setError("Could not save your rating. Please try again.");
+    } catch (e) {
+      console.error("PIXORA rating submit failed", e);
+      const code = e && typeof e === "object" && "code" in e ? String((e as { code?: unknown }).code) : "";
+      if (code.includes("permission-denied")) {
+        setError("Rating service is not enabled yet. Please try again in a moment.");
+      } else if (code.includes("unavailable") || code.includes("network")) {
+        setError("Connection problem. Please check your internet and try again.");
+      } else {
+        setError(e instanceof Error ? e.message : "Could not save your rating. Please try again.");
+      }
     } finally { setSaving(false); }
   };
 
